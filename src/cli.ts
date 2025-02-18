@@ -6,7 +6,7 @@ import { cleanupTranslations } from './index'
 const program = new Command()
 
 program
-    .name('i18n-cleanup')
+    .name('vue-translations-cleanup')
     .description('Clean up unused translation keys in your i18n files')
     .version('1.0.0')
     .requiredOption('-t, --translation-file <path>', 'Path to translation file')
