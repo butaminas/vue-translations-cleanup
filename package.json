@@ -1,0 +1,36 @@
+{
+  "name": "vue-translations-cleanup",
+  "version": "1.0.0",
+  "description": "A tool to find and remove unused translation keys in Vue i18n projects",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "i18n-cleanup": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest",
+    "lint": "eslint src/**/*.ts",
+    "prepublishOnly": "pnpm run build"
+  },
+  "keywords": [
+    "i18n",
+    "translations",
+    "vue",
+    "react",
+    "cleanup",
+    "internationalization"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^22.9.3",
+    "typescript": "^5.5.4",
+    "vitest": "^3.0.4",
+    "eslint": "^9.16.0"
+  },
+  "dependencies": {
+    "glob": "^11.0.0",
+    "commander": "^12.0.0"
+  }
+}
