@@ -1,8 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { cleanupTranslations } from '../src'
+import { cleanupTranslations } from '../src/translation-cleanup'
+import * as fs from 'node:fs'
+import { glob } from 'glob'
 
-// Mock the cleanupTranslations function
-vi.mock('../src', () => ({
+// Mock fs and glob
+vi.mock('node:fs')
+vi.mock('glob')
+vi.mock('../src/translation-cleanup', () => ({
     cleanupTranslations: vi.fn().mockResolvedValue({
         totalKeys: 3,
         usedKeys: 2,
@@ -12,6 +16,7 @@ vi.mock('../src', () => ({
     })
 }))
 
+
 describe('CLI', () => {
     beforeEach(() => {
         // Reset process.argv and mocks
@@ -20,6 +25,21 @@ describe('CLI', () => {
 
         // Clear module cache
         vi.resetModules()
+
+        // Setup fs mock
+        vi.mocked(fs.existsSync).mockImplementation(() => true)
+        vi.mocked(fs.readFileSync).mockImplementation((path) => {
+            if (path === 'translations.json') {
+                return JSON.stringify({
+                    common: { hello: 'Hello', unused: 'Unused Key' },
+                    buttons: { submit: 'Submit' }
+                })
+            }
+            return ''
+        })
+
+        // Setup glob mock
+        vi.mocked(glob).mockResolvedValue(['src/components/Test.vue'])
     })
 
     afterEach(() => {
