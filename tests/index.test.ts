@@ -77,4 +77,70 @@ describe('cleanupTranslations', () => {
 
         expect(result.cleaned).toBe(false)
     })
+
+    it('should detect translations in different syntax patterns', async () => {
+        // Mock file content with various translation patterns
+        vi.mocked(fs.readFileSync).mockImplementation((path) => {
+            if (path === 'translations.json') {
+                return JSON.stringify(mockTranslations)
+            }
+            // Mock file content with different translation patterns
+            return `
+            // Regular syntax
+            t('common.hello')
+            $t('buttons.submit')
+            
+            // Template literals
+            t(\`common.hello\`)
+            $t(\`buttons.submit\`)
+            
+            // Composition API
+            const { t } = useI18n()
+            t('common.hello')
+            useI18n().t('buttons.submit')
+            
+            // Object syntax in template
+            { $t: 'common.hello' }
+            :label="{ $t: 'buttons.submit' }"
+        `
+        })
+
+        const result = await cleanupTranslations({
+            translationFile: 'translations.json',
+            srcPath: 'src',
+            dryRun: true
+        })
+
+        // All occurrences of 'common.hello' and 'buttons.submit' should be detected
+        expect(result.usedKeys).toBe(2)
+        expect(result.unusedTranslations).toContain('common.unused')
+    })
+
+    it('should handle edge cases in translation patterns', async () => {
+        vi.mocked(fs.readFileSync).mockImplementation((path) => {
+            if (path === 'translations.json') {
+                return JSON.stringify(mockTranslations)
+            }
+            return `
+            // Mixed quotes
+            t("common.hello")
+            $t(\`buttons.submit\`)
+            
+            // Composition API with whitespace
+            const  {   t   }  =  useI18n()
+            t('common.hello')
+        `
+        })
+
+        const result = await cleanupTranslations({
+            translationFile: 'translations.json',
+            srcPath: 'src',
+            dryRun: true
+        })
+
+        console.log('Actual used keys:', Array.from(result.usedKeysSet))
+
+        expect(result.usedKeys).toBe(2)
+        expect(result.unusedKeys).toBe(1)
+    })
 })

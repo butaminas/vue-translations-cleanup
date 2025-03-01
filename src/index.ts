@@ -74,10 +74,20 @@ export async function cleanupTranslations(options: CleanupOptions) {
         const content = fs.readFileSync(file, 'utf-8')
 
         const patterns = [
-            /[t$]\(['"]([^'"]+)['"]/g,
-            /['"]([^'"]+)['"]\s*(?:,\s*)?(?=]|$)/g,
-            /(?:value|key):\s*['"]([^'"]+)['"]/g,
-            /:\s*['"]([^'"]+)['"]\s*(?:,|$)/g,
+            // t() and $t() function calls
+            /[t$]\(['"]([^'"]+)['"]\)/g,
+
+            // Template literals
+            /[t$]\(`([\w.-]+)`\)/g,
+
+            // Composition API usage
+            /useI18n\(\)\.t\(['"`]([^'"`]+)['"`]\)/g,
+
+            // Object-style template usage
+            /\$t\s*:\s*['"`]([^'"`]+)['"`]/g,
+
+            // Value/key properties in specific translation contexts
+            /(?:value|key):\s*['"]([^'"]+)['"]/g
         ]
 
         patterns.forEach((pattern) => {
@@ -111,6 +121,8 @@ export async function cleanupTranslations(options: CleanupOptions) {
     const result = {
         totalKeys: allTranslationKeys.length,
         usedKeys: usedKeys.size,
+        usedKeysSet: usedKeys,
+
         unusedKeys: unusedTranslations.length,
         unusedTranslations,
         cleaned: false,
