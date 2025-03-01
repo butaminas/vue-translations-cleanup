@@ -73,9 +73,6 @@ describe('CLI', () => {
         // Wait for next tick
         await new Promise(process.nextTick)
 
-        // Log actual calls to help debug
-        console.log('Actual calls:', vi.mocked(cleanupTranslations).mock.calls)
-
         // Check if the function was called at all
         expect(cleanupTranslations).toHaveBeenCalled()
 
