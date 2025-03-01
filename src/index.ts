@@ -74,24 +74,32 @@ export async function cleanupTranslations(options: CleanupOptions) {
         const content = fs.readFileSync(file, 'utf-8')
 
         const patterns = [
-            // Basic t() and $t() with quotes - handles additional parameters
-            /[t$]t\(['"]([^'"]+)['"](?:\s*,\s*[^)]+)?\)/g,
+            // Basic t() function call (already fixed)
+            /(?:^|\W)(?:\$)?t\(['"]([^'"]+)['"]\)/g,
 
-            // Template literals - handles additional parameters
-            /[t$]t\(`([^`]+)`(?:\s*,\s*[^)]+)?\)/g,
+            // $t() with quotes and multi-line support
+            /(?:^|\W)(?:\$)?t\(\s*['"]([^'"]+)['"]\s*(?:,[\s\S]*?)?\)/g,
 
-            // tc() and $tc() with quotes - handles additional parameters
-            /[t$]tc\(['"]([^'"]+)['"](?:\s*,\s*[^)]+)?\)/g,
+            // Template literals with multi-line support
+            /(?:^|\W)(?:\$)?t\(\s*`([^`]+)`\s*(?:,[\s\S]*?)?\)/g,
 
-            // tc() and $tc() with template literals - handles additional parameters
-            /[t$]tc\(`([^`]+)`(?:\s*,\s*[^)]+)?\)/g,
+            // rt() and $rt support with multi-line
+            /(?:^|\W)(?:\$)?rt\(\s*['"]([^'"]+)['"]\s*(?:,[\s\S]*?)?\)/g,
+            /(?:^|\W)(?:\$)?rt\(\s*`([^`]+)`\s*(?:,[\s\S]*?)?\)/g,
 
-            // Composition API usage - handles additional parameters
-            /useI18n\(\)\.t\(['"`]([^'"`]+)['"`](?:\s*,\s*[^)]+)?\)/g,
+            // tc() and $tc() with multi-line support
+            /(?:^|\W)(?:\$)?tc\(\s*['"]([^'"]+)['"]\s*(?:,[\s\S]*?)?\)/g,
+            /(?:^|\W)(?:\$)?tc\(\s*`([^`]+)`\s*(?:,[\s\S]*?)?\)/g,
 
-            // Object-style template usage
-            /\$t\s*:\s*['"`]([^'"`]+)['"`]/g
-        ]
+            // Composition API usage with multi-line support
+            /(?:^|\W)useI18n\(\)\.[tr]t\(\s*['"`]([^'"`]+)['"`]\s*(?:,[\s\S]*?)?\)/g,
+
+            // Object-style template usage - this one is fine as is because it specifically looks for $t:
+            /\$t\s*:\s*['"`]([^'"`]+)['"`]/g,
+
+            // Handle bracket notation
+            /(?:^|\W)(?:\$)?t\(['"]([^'"]+(?:\[['"][^'"]+['"]\])*)['"]\)/g,
+    ]
 
         function normalizeTranslationKey(key: string): string {
             // Convert bracket notation to dot notation
