@@ -74,27 +74,35 @@ export async function cleanupTranslations(options: CleanupOptions) {
         const content = fs.readFileSync(file, 'utf-8')
 
         const patterns = [
-            // t() and $t() function calls
-            /[t$]\(['"]([^'"]+)['"]\)/g,
+            // t() and $t() function calls with quotes, supporting bracket notation
+            /[t$]t\(['"]([^'"]+(?:\[['"][^'"]+['"])\][^'"]*)*['"]\)/g,
 
-            // Template literals
-            /[t$]\(`([\w.-]+)`\)/g,
+            // Template literals with bracket notation
+            /[t$]t\(`([^`]+(?:\[['"][^'"]+['"])\][^`]*)*`\)/g,
+
+            // tc() and $tc() with quotes and bracket notation
+            /[t$]tc\(['"]([^'"]+(?:\[['"][^'"]+['"])\][^'"]*)*['"]\s*,\s*\d+\)/g,
+
+            // tc() and $tc() with template literals and bracket notation
+            /[t$]tc\(`([^`]+(?:\[['"][^'"]+['"])\][^`]*)*`\s*,\s*\d+\)/g,
 
             // Composition API usage
             /useI18n\(\)\.t\(['"`]([^'"`]+)['"`]\)/g,
 
             // Object-style template usage
-            /\$t\s*:\s*['"`]([^'"`]+)['"`]/g,
-
-            // Value/key properties in specific translation contexts
-            /(?:value|key):\s*['"]([^'"]+)['"]/g
+            /\$t\s*:\s*['"`]([^'"`]+)['"`]/g
         ]
+
+        function normalizeTranslationKey(key: string): string {
+            // Convert bracket notation to dot notation
+            return key.replace(/\[['"]([^'"]+)['"]\]/g, '.$1');
+        }
 
         patterns.forEach((pattern) => {
             const matches = content.matchAll(pattern)
             for (const match of matches) {
                 if (match[1]) {
-                    usedKeys.add(match[1])
+                    usedKeys.add(normalizeTranslationKey(match[1]))
                 }
             }
         })
@@ -105,8 +113,9 @@ export async function cleanupTranslations(options: CleanupOptions) {
             if (constMatch[1]) {
                 const stringMatches = constMatch[1].matchAll(/['"]([^'"]+)['"]/g)
                 for (const match of stringMatches) {
-                    if (match[1])
-                        usedKeys.add(match[1])
+                    if (match[1]) {
+                        usedKeys.add(normalizeTranslationKey(match[1]))
+                    }
                 }
             }
         }

@@ -78,23 +78,23 @@ describe('cleanupTranslations', () => {
         expect(result.cleaned).toBe(false)
     })
 
-    it('should detect translations in different syntax patterns', async () => {
-        // Mock file content with various translation patterns
+    it('should detect all translation patterns', async () => {
         vi.mocked(fs.readFileSync).mockImplementation((path) => {
             if (path === 'translations.json') {
                 return JSON.stringify(mockTranslations)
             }
-            // Mock file content with different translation patterns
             return `
-            // Regular syntax
+            // Basic syntax with different quotes
             t('common.hello')
-            $t('buttons.submit')
-            
-            // Template literals
+            $t("buttons.submit")
             t(\`common.hello\`)
-            $t(\`buttons.submit\`)
             
-            // Composition API
+            // Count functions
+            $tc('common.hello', 0)
+            tc("buttons.submit", 1)
+            $tc(\`common.hello\`, 2)
+            
+            // Composition API usage
             const { t } = useI18n()
             t('common.hello')
             useI18n().t('buttons.submit')
@@ -111,8 +111,9 @@ describe('cleanupTranslations', () => {
             dryRun: true
         })
 
-        // All occurrences of 'common.hello' and 'buttons.submit' should be detected
-        expect(result.usedKeys).toBe(2)
+        expect(result.usedKeys).toBe(2) // Only unique keys should be counted
+        expect(Array.from(result.usedKeysSet)).toContain('common.hello')
+        expect(Array.from(result.usedKeysSet)).toContain('buttons.submit')
         expect(result.unusedTranslations).toContain('common.unused')
     })
 
@@ -142,5 +143,39 @@ describe('cleanupTranslations', () => {
 
         expect(result.usedKeys).toBe(2)
         expect(result.unusedKeys).toBe(1)
+    })
+
+    it('should detect nested translations with bracket notation', async () => {
+        const mockNestedTranslations = {
+            parent: {
+                child: {
+                    'sub-child': 'Test Value'
+                }
+            }
+        }
+
+        vi.mocked(fs.readFileSync).mockImplementation((path) => {
+            if (path === 'translations.json') {
+                return JSON.stringify(mockNestedTranslations)
+            }
+            return `
+            // Bracket notation
+            t('parent.child["sub-child"]')
+            $t('parent.child[\'sub-child\']')
+            tc('parent.child["sub-child"]', 1)
+            
+            // Mixed dot and bracket notation
+            t('parent["child"].sub-child')
+            $t('parent["child"]["sub-child"]')
+        `
+        })
+
+        const result = await cleanupTranslations({
+            translationFile: 'translations.json',
+            srcPath: 'src',
+            dryRun: true
+        })
+
+        expect(Array.from(result.usedKeysSet)).toContain('parent.child.sub-child')
     })
 })
