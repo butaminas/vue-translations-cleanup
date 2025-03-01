@@ -78,7 +78,7 @@ describe('cleanupTranslations', () => {
         expect(result.cleaned).toBe(false)
     })
 
-    it('should detect all translation patterns', async () => {
+    it('should detect all translation patterns without additional parameters', async () => {
         vi.mocked(fs.readFileSync).mockImplementation((path) => {
             if (path === 'translations.json') {
                 return JSON.stringify(mockTranslations)
@@ -177,5 +177,74 @@ describe('cleanupTranslations', () => {
         })
 
         expect(Array.from(result.usedKeysSet)).toContain('parent.child.sub-child')
+    })
+
+    it('should detect translation keys with various parameter types', async () => {
+        const mockNestedTranslations = {
+            messages: {
+                hello: 'Hello',
+                welcome: 'Welcome',
+                goodbye: 'Goodbye',
+                items: 'Items'
+            }
+        }
+
+        vi.mocked(fs.readFileSync).mockImplementation((path) => {
+            if (path === 'translations.json') {
+                return JSON.stringify(mockNestedTranslations)
+            }
+            return `
+            // With locale parameter
+            $t('messages.hello', 'en-US')
+            
+            // With array parameter
+            $t('messages.welcome', ['John', 'Jane'])
+            
+            // With named parameters object
+            $t('messages.hello', { name: 'John' })
+            
+            // With plural number
+            $t('messages.items', 2)
+            
+            // With options object
+            $t('messages.welcome', { pluralization: true })
+            
+            // With default message
+            $t('messages.goodbye', 'See you later')
+            
+            // Mixed parameters
+            $t('messages.hello', ['param'], 2)
+            $t('messages.welcome', { name: 'John' }, 'Default welcome')
+            
+            // Template literals with parameters
+            t(\`messages.hello\`, { name: 'John' })
+            
+            // Composition API with parameters
+            const { t } = useI18n()
+            t('messages.welcome', { name: 'John' })
+            useI18n().t('messages.goodbye', 'See you')
+            
+            // With multiple spaces and line breaks
+            $t(
+                'messages.hello',
+                { 
+                    name: 'John'
+                }
+            )
+        `
+        })
+
+        const result = await cleanupTranslations({
+            translationFile: 'translations.json',
+            srcPath: 'src',
+            dryRun: true
+        })
+
+        // All keys should be detected regardless of the parameter variations
+        expect(Array.from(result.usedKeysSet)).toContain('messages.hello')
+        expect(Array.from(result.usedKeysSet)).toContain('messages.welcome')
+        expect(Array.from(result.usedKeysSet)).toContain('messages.goodbye')
+        expect(Array.from(result.usedKeysSet)).toContain('messages.items')
+        expect(result.usedKeys).toBe(4) // Should find all unique keys
     })
 })

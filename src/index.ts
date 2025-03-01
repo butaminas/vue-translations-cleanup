@@ -74,20 +74,20 @@ export async function cleanupTranslations(options: CleanupOptions) {
         const content = fs.readFileSync(file, 'utf-8')
 
         const patterns = [
-            // t() and $t() function calls with quotes, supporting bracket notation
-            /[t$]t\(['"]([^'"]+(?:\[['"][^'"]+['"])\][^'"]*)*['"]\)/g,
+            // Basic t() and $t() with quotes - handles additional parameters
+            /[t$]t\(['"]([^'"]+)['"](?:\s*,\s*[^)]+)?\)/g,
 
-            // Template literals with bracket notation
-            /[t$]t\(`([^`]+(?:\[['"][^'"]+['"])\][^`]*)*`\)/g,
+            // Template literals - handles additional parameters
+            /[t$]t\(`([^`]+)`(?:\s*,\s*[^)]+)?\)/g,
 
-            // tc() and $tc() with quotes and bracket notation
-            /[t$]tc\(['"]([^'"]+(?:\[['"][^'"]+['"])\][^'"]*)*['"]\s*,\s*\d+\)/g,
+            // tc() and $tc() with quotes - handles additional parameters
+            /[t$]tc\(['"]([^'"]+)['"](?:\s*,\s*[^)]+)?\)/g,
 
-            // tc() and $tc() with template literals and bracket notation
-            /[t$]tc\(`([^`]+(?:\[['"][^'"]+['"])\][^`]*)*`\s*,\s*\d+\)/g,
+            // tc() and $tc() with template literals - handles additional parameters
+            /[t$]tc\(`([^`]+)`(?:\s*,\s*[^)]+)?\)/g,
 
-            // Composition API usage
-            /useI18n\(\)\.t\(['"`]([^'"`]+)['"`]\)/g,
+            // Composition API usage - handles additional parameters
+            /useI18n\(\)\.t\(['"`]([^'"`]+)['"`](?:\s*,\s*[^)]+)?\)/g,
 
             // Object-style template usage
             /\$t\s*:\s*['"`]([^'"`]+)['"`]/g
