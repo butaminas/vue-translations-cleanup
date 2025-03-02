@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { Command } from 'commander'
-import { cleanupTranslations } from './translation-cleanup'
+import { cleanupTranslations } from './translations-cleanup'
 
 const program = new Command()
 

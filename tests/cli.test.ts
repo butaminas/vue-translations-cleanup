@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { cleanupTranslations } from '../src/translation-cleanup'
+import { cleanupTranslations } from '../src/translations-cleanup'
 import * as fs from 'node:fs'
 import { glob } from 'glob'
 
