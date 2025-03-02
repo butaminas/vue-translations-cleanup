@@ -28,7 +28,8 @@
     "@types/node": "^22.9.3",
     "eslint": "^9.16.0",
     "typescript": "^5.5.4",
-    "vitest": "^3.0.4"
+    "vitest": "^3.0.4",
+    "@antfu/eslint-config": "^4.3.0"
   },
   "dependencies": {
     "commander": "^13.1.0",
