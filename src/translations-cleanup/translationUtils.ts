@@ -24,5 +24,5 @@ export function flattenTranslations(
 }
 
 export function normalizeTranslationKey(key: string): string {
-  return key.replace(/\[['"]([^'"]+)['"]\]/g, '.$1')
+  return key.replace(/\[['"]([^'"]+)['"]]/g, '.$1')
 }

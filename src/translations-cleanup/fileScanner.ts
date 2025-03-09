@@ -21,7 +21,7 @@ export async function scanFiles(srcPath: string): Promise<Set<string>> {
     }
 
     // Add back the const arrays check
-    const constArrays = content.matchAll(/const\s+\w+\s*=\s*\[([\s\S]*?)\]/g)
+    const constArrays = content.matchAll(/const\s+\w+\s*=\s*\[([\s\S]*?)]/g)
     for (const constMatch of constArrays) {
       if (constMatch[1]) {
         const stringMatches = constMatch[1].matchAll(/['"]([^'"]+)['"]/g)
