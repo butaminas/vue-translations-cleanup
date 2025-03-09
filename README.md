@@ -3,18 +3,21 @@
 [![npm version](https://img.shields.io/npm/v/vue-translations-cleanup.svg)](https://www.npmjs.com/package/vue-translations-cleanup)
 [![License](https://img.shields.io/npm/l/vue-translations-cleanup.svg)](https://github.com/yourusername/vue-translations-cleanup/blob/main/LICENSE)
 
-A tool to find and remove unused translation keys in Vue.js i18n projects. While primarily designed for Vue.js, it can also work with other frameworks that use similar i18n patterns.
+A tool designed to help you clean up unused translation keys in your Vue.js i18n projects (and similar setups). With enhanced detection and safe, stable updates, managing your translation files has never been easier.
 
 ## Features
 
-- Finds unused translation keys in Vue projects
-- Supports nested translation objects
-- Creates backup files by default
-- Handles various translation key usage patterns:
-  - Direct `t('key')` or `$t('key')` calls
-  - Array constant definitions
-  - Dynamic translation names
-  - String literals in arrays
+- **Advanced Translation Detection:**  
+  Supports various translation function calls including `t()`, `$t()`, `rt()`, `$rt()`, `tc()`, `$tc()`, as well as Composition API usage (e.g. `useI18n().t()`). Multi-line support and different quoting styles (single, double, template literals) are fully supported—even handling object-style templates and bracket notation.
+
+- **Safe & Reliable Updates:**  
+  Automatically creates backup files before making changes. A dry-run mode allows you to preview updates without modifying files, ensuring your translations remain secure.
+
+- **Modular & Extensible Architecture:**  
+  The tool is built with modular components for file scanning and translation extraction, making it easy to maintain and extend.
+
+- **Fully Tested for Stability:**  
+  Comprehensive tests ensure the tool's robustness in detecting and cleaning translation keys across your codebase.
 
 ## Installation
 
@@ -31,76 +34,34 @@ yarn add -D vue-translations-cleanup
 
 ## Usage
 
-### As a package.json script (Recommended)
-
-Add it to your project's package.json:
-```json
-{
-  "scripts": {
-    "clean-translations": "vue-translations-cleanup --translation-file ./src/lang/translations/en.json --src-path ./src"
-  }
-}
-```
-
-Then run it using:
-```bash
-pnpm clean-translations
-```
-
-### Command Line
+You can run the tool either from the command line:
 
 ```bash
 npx vue-translations-cleanup --translation-file ./src/translations/en.json --src-path ./src
 ```
 
-### Programmatic Usage
+Or programmatically:
 
 ```typescript
 import { cleanupTranslations } from 'vue-translations-cleanup'
 
-const result = await cleanupTranslations({
-  translationFile: './src/translations/en.json',
-  srcPath: './src',
-  backup: true,
-  dryRun: false,
-  verbose: true,
-})
+(async () => {
+  const result = await cleanupTranslations({
+    translationFile: './src/translations/en.json',
+    srcPath: './src',
+    backup: true,    // Backup is created by default
+    dryRun: false,
+    verbose: true,
+  })
 
-console.log('Unused translations:', result.unusedTranslations)
+  console.log('Unused translations:', result.unusedTranslations)
+})()
 ```
-
-### Options
-
-- `-t, --translation-file <path>` - Path to translation file (required)
-- `-s, --src-path <path>` - Path to source files (required)
-- `-n, --dry-run` - Show what would be removed without making changes
-- `--no-backup` - Skip creating backup file
-- `-v, --verbose` - Show detailed output
-
-## Example Output
-
-```bash
-Results:
-Total translation keys: 150
-Used keys: 130
-Unused keys: 20
-
-Unused translations:
-[
-  "common.deprecated.key",
-  "menu.unused.item",
-  ...
-]
-
-Translations file has been updated
-```
-
-## Safety Features
-
-- Creates backup files by default before making changes
-- Dry run mode available to preview changes
-- Preserves JSON formatting and structure
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Contributions are welcome! If you have improvements or find issues, feel free to submit a Pull Request.
+
+---
+
+Happy translating!
