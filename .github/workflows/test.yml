@@ -1,0 +1,24 @@
+name: Run Tests
+
+on:
+  pull_request:
+    branches: [ main, master ]  # Runs on PRs targeting main or master
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'  # Using latest LTS version
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install
+
+      - name: Run tests
+        run: yarn test  # This will run the test script from your package.json
