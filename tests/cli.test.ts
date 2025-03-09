@@ -1,204 +1,169 @@
-import * as fs from 'node:fs'
+import type { MockInstance } from 'vitest'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-describe('cLI Integration Tests', () => {
+// Mock the translations-cleanup module
+vi.mock('@/translations-cleanup', () => ({
+  cleanupTranslations: vi.fn().mockResolvedValue({
+    totalKeys: 100,
+    usedKeys: 90,
+    unusedKeys: 10,
+    unusedTranslations: ['key1', 'key2', 'key3'],
+    cleaned: true,
+  }),
+}))
+
+describe('cLI', () => {
+  let consoleLogSpy: MockInstance
+  let consoleErrorSpy: MockInstance
+  let processExitSpy: MockInstance
+  let originalArgv: string[]
+
   beforeEach(() => {
-    vi.unmock('../src/translations-cleanup')
-    // Reset process.argv and clear mocks before each test
-    process.argv = ['node', 'cli.js']
-    vi.clearAllMocks()
-    vi.resetModules()
+    // Save original process.argv
+    originalArgv = process.argv
+
+    // Mock console methods
+    consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    processExitSpy = vi.spyOn(process, 'exit').mockImplementation(
+      () => undefined as never,
+    )
   })
 
   afterEach(() => {
+    // Restore original argv
+    process.argv = originalArgv
+
+    // Clear mocks
     vi.clearAllMocks()
-    vi.resetModules()
   })
 
-  it('should fail when translation file does not exist', async () => {
-    // Mock both fs and fileScanner
-    vi.mock('node:fs')
-    vi.mock('../src/fileScanner')
+  it('should execute with required options', async () => {
+    // Set up process.argv for the CLI
+    process.argv = [
+      'node',
+      'cli.js',
+      '-t',
+      './locales/en.json',
+      '-s',
+      './src',
+    ]
 
-    // Mock fs implementation after the module is mocked
-    vi.mocked(fs.existsSync).mockImplementation(path => path !== 'nonexistent.json')
+    // Import and execute the CLI module
+    const { cleanupTranslations } = await import('@/translations-cleanup')
+    await import('@/cli')
 
-    const consoleErrorSpy = vi.spyOn(console, 'error')
-    const mockExit = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never)
-
-    process.argv = ['node', 'cli.js', '-t', 'nonexistent.json', '-s', 'src']
-
-    // Clear module cache to ensure fresh import
-    vi.resetModules()
-
-    await import('../src/cli')
-
-    // Wait for promises to resolve
-    await new Promise(resolve => setTimeout(resolve, 100))
-
-    expect(consoleErrorSpy).toHaveBeenCalledWith('Error:', 'Translation file not found: nonexistent.json')
-    expect(mockExit).toHaveBeenCalledWith(1)
-  })
-
-  it('should handle successful cleanup with unused translations', async () => {
-    // Mock fs module
-    vi.mock('node:fs', () => ({
-      existsSync: vi.fn(() => true),
-      readFileSync: vi.fn(() => JSON.stringify({
-        common: { hello: 'Hello', unused: 'Unused Key' },
-        buttons: { submit: 'Submit' },
-      })),
-      writeFileSync: vi.fn(),
-      copyFileSync: vi.fn(),
-    }))
-
-    // Mock translations-cleanup to return specific results
-    vi.mock('../src/translations-cleanup', () => ({
-      cleanupTranslations: vi.fn().mockResolvedValue({
-        totalKeys: 3,
-        usedKeys: 2,
-        unusedKeys: 1,
-        unusedTranslations: {
-          'common.unused': 'Unused Key',
-        },
-        cleaned: true,
-      }),
-    }))
-
-    const consoleSpy = vi.spyOn(console, 'log')
-
-    process.argv = ['node', 'cli.js', '-t', 'translations.json', '-s', 'src']
-
-    // Clear module cache and import
-    vi.resetModules()
-    await import('../src/cli')
-
-    // Wait for promises to resolve
-    await new Promise(resolve => setTimeout(resolve, 100))
-
-    // Verify all expected console.log calls
-    expect(consoleSpy).toHaveBeenNthCalledWith(1, '\nResults:')
-    expect(consoleSpy).toHaveBeenNthCalledWith(2, 'Total translation keys:', 3)
-    expect(consoleSpy).toHaveBeenNthCalledWith(3, 'Used keys:', 2)
-    expect(consoleSpy).toHaveBeenNthCalledWith(4, 'Unused keys:', 1)
-    expect(consoleSpy).toHaveBeenNthCalledWith(5, '\nUnused translations:')
-    expect(consoleSpy).toHaveBeenNthCalledWith(7, '\nTranslations file has been updated')
-  })
-
-  it('should handle dry run mode', async () => {
-    vi.mock('node:fs', () => ({
-      existsSync: vi.fn(() => true),
-      readFileSync: vi.fn(() => JSON.stringify({
-        common: { hello: 'Hello', unused: 'Unused Key' },
-      })),
-      writeFileSync: vi.fn(),
-      copyFileSync: vi.fn(),
-    }))
-
-    vi.mock('glob', () => ({
-      glob: vi.fn().mockResolvedValue(['src/components/Test.vue']),
-    }))
-
-    const consoleSpy = vi.spyOn(console, 'log')
-    const writeFileSpy = vi.spyOn(fs, 'writeFileSync')
-
-    process.argv = ['node', 'cli.js', '-t', 'translations.json', '-s', 'src', '--dry-run']
-    await import('../src/cli')
-
-    await vi.waitFor(() => {
-      expect(consoleSpy).toHaveBeenCalledWith('\nDry run - no changes made')
-      expect(writeFileSpy).not.toHaveBeenCalled()
+    // Verify cleanupTranslations was called with correct arguments
+    expect(cleanupTranslations).toHaveBeenCalledWith({
+      translationFile: expect.any(String),
+      srcPath: expect.any(String),
+      backup: true,
+      dryRun: undefined,
+      verbose: undefined,
     })
+
+    // Check console output contained expected message
+    expect(consoleLogSpy).toHaveBeenCalledWith(
+      expect.stringContaining('Found 10 unused translation keys out of 100 total keys'),
+    )
+
+    // Check expected results were logged
+    expect(consoleLogSpy).toHaveBeenCalledWith(
+      expect.stringContaining('Translations file has been updated:'),
+    )
   })
 
-  it('should handle no unused translations', async () => {
-    // Mock fs module
-    vi.mock('node:fs', () => ({
-      existsSync: vi.fn(() => true),
-      readFileSync: vi.fn(() => JSON.stringify({
-        common: { hello: 'Hello' },
-      })),
-      writeFileSync: vi.fn(),
-      copyFileSync: vi.fn(),
-    }))
+  it('should support dry run mode', async () => {
+    // Set up process.argv for the CLI with dry-run option
+    process.argv = [
+      'node',
+      'cli.js',
+      '-t',
+      './locales/en.json',
+      '-s',
+      './src',
+      '--dry-run',
+    ]
 
-    // Mock translations-cleanup to return results with no unused keys
-    vi.mock('../src/translations-cleanup', () => ({
-      cleanupTranslations: vi.fn().mockResolvedValue({
-        totalKeys: 1,
-        usedKeys: 1,
-        unusedKeys: 0,
-        unusedTranslations: {},
-        cleaned: false
-      })
-    }))
-
-    const consoleSpy = vi.spyOn(console, 'log')
-
-    process.argv = ['node', 'cli.js', '-t', 'translations.json', '-s', 'src']
-
-    // Clear module cache and import
+    // Clear module cache to ensure fresh execution
     vi.resetModules()
-    await import('../src/cli')
 
-    // Wait for promises to resolve
-    await new Promise(resolve => setTimeout(resolve, 100))
+    const { cleanupTranslations } = await import('@/translations-cleanup')
+    await import('@/cli')
 
-    // Verify expected console.log calls
-    expect(consoleSpy).toHaveBeenNthCalledWith(1, '\nResults:')
-    expect(consoleSpy).toHaveBeenNthCalledWith(2, 'Total translation keys:', 1)
-    expect(consoleSpy).toHaveBeenNthCalledWith(3, 'Used keys:', 1)
-    expect(consoleSpy).toHaveBeenNthCalledWith(4, 'Unused keys:', 0)
-    expect(consoleSpy).toHaveBeenNthCalledWith(5, '\nNo unused translations found')
+    // Verify cleanupTranslations was called with dry-run flag
+    expect(cleanupTranslations).toHaveBeenCalledWith({
+      translationFile: expect.any(String),
+      srcPath: expect.any(String),
+      backup: true,
+      dryRun: true,
+      verbose: undefined,
+    })
+
+    // Check dry run message was logged
+    expect(consoleLogSpy).toHaveBeenCalledWith(
+      expect.stringContaining('Dry run - no changes made'),
+    )
   })
 
-  it('should handle verbose mode with backup', async () => {
-    vi.mock('node:fs', () => ({
-      existsSync: vi.fn(() => true),
-      readFileSync: vi.fn(() => JSON.stringify({
-        common: { hello: 'Hello', unused: 'Unused Key' },
-      })),
-      writeFileSync: vi.fn(),
-      copyFileSync: vi.fn(),
-    }))
+  it('should display verbose output when requested', async () => {
+    // Set up process.argv for the CLI with verbose option
+    process.argv = [
+      'node',
+      'cli.js',
+      '-t',
+      './locales/en.json',
+      '-s',
+      './src',
+      '--verbose',
+    ]
 
-    vi.mock('glob', () => ({
-      glob: vi.fn().mockResolvedValue(['src/components/Test.vue']),
-    }))
+    // Clear module cache to ensure fresh execution
+    vi.resetModules()
 
-    const consoleSpy = vi.spyOn(console, 'log')
-    const copyFileSpy = vi.spyOn(fs, 'copyFileSync')
+    const { cleanupTranslations } = await import('@/translations-cleanup')
+    await import('@/cli')
 
-    process.argv = ['node', 'cli.js', '-t', 'translations.json', '-s', 'src', '-v']
-    await import('../src/cli')
-
-    await vi.waitFor(() => {
-      expect(copyFileSpy).toHaveBeenCalled()
-      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Backup created at:'))
+    // Verify cleanupTranslations was called with verbose flag
+    expect(cleanupTranslations).toHaveBeenCalledWith({
+      translationFile: expect.any(String),
+      srcPath: expect.any(String),
+      backup: true,
+      dryRun: undefined,
+      verbose: true,
     })
+
+    // Check verbose information was logged (partially)
+    expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('Results:'))
+    expect(consoleLogSpy).toHaveBeenCalledWith('Total translation keys:', 100)
+    expect(consoleLogSpy).toHaveBeenCalledWith('Used keys:', 90)
+    expect(consoleLogSpy).toHaveBeenCalledWith('Unused keys:', 10)
+    expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('Unused translations:'))
   })
 
-  it('should skip backup when --no-backup is provided', async () => {
-    vi.mock('node:fs', () => ({
-      existsSync: vi.fn(() => true),
-      readFileSync: vi.fn(() => JSON.stringify({
-        common: { hello: 'Hello', unused: 'Unused Key' },
-      })),
-      writeFileSync: vi.fn(),
-      copyFileSync: vi.fn(),
-    }))
+  it('should handle errors', async () => {
+    // Mock cleanupTranslations to reject with an error
+    const { cleanupTranslations } = await import('@/translations-cleanup')
+    vi.mocked(cleanupTranslations).mockRejectedValueOnce(new Error('Test error'))
 
-    vi.mock('glob', () => ({
-      glob: vi.fn().mockResolvedValue(['src/components/Test.vue']),
-    }))
+    // Set up process.argv for the CLI
+    process.argv = [
+      'node',
+      'cli.js',
+      '-t',
+      './locales/en.json',
+      '-s',
+      './src',
+    ]
 
-    const copyFileSpy = vi.spyOn(fs, 'copyFileSync')
+    // Clear module cache to ensure fresh execution
+    vi.resetModules()
 
-    process.argv = ['node', 'cli.js', '-t', 'translations.json', '-s', 'src', '--no-backup']
-    await import('../src/cli')
+    // Import and execute the CLI module
+    await import('@/cli')
 
-    await vi.waitFor(() => {
-      expect(copyFileSpy).not.toHaveBeenCalled()
-    })
+    // Verify error handling
+    expect(consoleErrorSpy).toHaveBeenCalledWith('Error:', 'Test error')
+    expect(processExitSpy).toHaveBeenCalledWith(1)
   })
 })

@@ -42,6 +42,7 @@ export async function cleanupTranslations(options: CleanupOptions) {
   const result = {
     totalKeys: allTranslationKeys.length,
     usedKeys: usedKeys.size,
+    usedKeysSet: usedKeys,
     unusedKeys: unusedTranslations.length,
     unusedTranslations,
     cleaned: false,

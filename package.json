@@ -10,7 +10,7 @@
   },
   "scripts": {
     "build": "tsc",
-    "test": "vitest",
+    "test": "vitest --run",
     "lint": "eslint src/**/*.ts",
     "prepublishOnly": "pnpm run build"
   },
@@ -25,11 +25,11 @@
   "author": "Your Name",
   "license": "MIT",
   "devDependencies": {
-    "@types/node": "^22.9.3",
-    "eslint": "^9.16.0",
-    "typescript": "^5.5.4",
-    "vitest": "^3.0.4",
-    "@antfu/eslint-config": "^4.3.0"
+    "@antfu/eslint-config": "^4.8.1",
+    "@types/node": "^22.13.10",
+    "eslint": "^9.22.0",
+    "typescript": "^5.8.2",
+    "vitest": "^3.0.8"
   },
   "dependencies": {
     "commander": "^13.1.0",
