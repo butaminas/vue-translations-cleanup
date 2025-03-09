@@ -1,6 +1,4 @@
 /.idea/
-/package-lock.json
 /node_modules/
 *.log
 /dist/
-/yarn.lock
