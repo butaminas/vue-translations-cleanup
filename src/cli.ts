@@ -1,16 +1,28 @@
 #!/usr/bin/env node
+import fs from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
 import { Command } from 'commander'
-import { version } from '../package.json'
 import { cleanupTranslations } from './translations-cleanup'
+
+function readPkgVersion(): string {
+  try {
+    const pkgPath = path.resolve(__dirname, '../package.json')
+    const pkgRaw = fs.readFileSync(pkgPath, 'utf-8')
+    const pkg = JSON.parse(pkgRaw) as { version?: string }
+    return pkg.version || process.env.npm_package_version || '0.0.0'
+  }
+  catch {
+    return process.env.npm_package_version || '0.0.0'
+  }
+}
 
 const program = new Command()
 
 program
   .name('vue-translations-cleanup')
   .description('Clean up unused translation keys in your i18n files')
-  .version(version)
+  .version(readPkgVersion())
   .requiredOption('-t, --translation-file <path>', 'Path to translation file')
   .requiredOption('-s, --src-path <path>', 'Path to source files')
   .option('-n, --dry-run', 'Show what would be removed without making changes')
@@ -62,6 +74,12 @@ cleanupTranslations({
     }
     else {
       console.log('\nNo unused translations found ✓')
+      if (result.cleaned && !options.dryRun) {
+        console.log(`Pruned empty groups. Translations file has been updated: ${translationFile}`)
+        if (options.backup) {
+          console.log(`Backup created at: ${translationFile}.backup`)
+        }
+      }
     }
   })
   .catch((error) => {

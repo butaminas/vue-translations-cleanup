@@ -1,27 +1,36 @@
 export const translationPatterns = [
-  // Basic t() function call (already fixed)
-  /(?:^|\W)\$?t\(['"]([^'"]+)['"]\)/g,
+  // t() / $t() with quotes and multi-line support — match only the first argument (stop before , or ))
+  /(?:^|\W)\$?t\(\s*(['"])([\s\S]*?)\1(?=\s*(?:[,)]))/g,
 
-  // $t() with quotes and multi-line support
-  /(?:^|\W)\$?t\(\s*['"]([^'"]+)['"]\s*(?:,[\s\S]*?)?\)/g,
+  // Template literals with multi-line support — match only first arg
+  /(?:^|\W)\$?t\(\s*`([^`]+)`(?=\s*(?:[,)]))/g,
 
-  // Template literals with multi-line support
-  /(?:^|\W)\$?t\(\s*`([^`]+)`\s*(?:,[\s\S]*?)?\)/g,
+  // rt() and $rt support — first arg only
+  /(?:^|\W)\$?rt\(\s*(['"])([\s\S]*?)\1(?=\s*(?:[,)]))/g,
+  /(?:^|\W)\$?rt\(\s*`([^`]+)`(?=\s*(?:[,)]))/g,
 
-  // rt() and $rt support with multi-line
-  /(?:^|\W)\$?rt\(\s*['"]([^'"]+)['"]\s*(?:,[\s\S]*?)?\)/g,
-  /(?:^|\W)\$?rt\(\s*`([^`]+)`\s*(?:,[\s\S]*?)?\)/g,
+  // tc() and $tc() — first arg only
+  /(?:^|\W)\$?tc\(\s*(['"])([\s\S]*?)\1(?=\s*(?:[,)]))/g,
+  /(?:^|\W)\$?tc\(\s*`([^`]+)`(?=\s*(?:[,)]))/g,
 
-  // tc() and $tc() with multi-line support
-  /(?:^|\W)\$?tc\(\s*['"]([^'"]+)['"]\s*(?:,[\s\S]*?)?\)/g,
-  /(?:^|\W)\$?tc\(\s*`([^`]+)`\s*(?:,[\s\S]*?)?\)/g,
+  // Composition API usage — first arg only
+  /(?:^|\W)useI18n\(\)\.(?:t|rt|tc)\(\s*(['"`])([\s\S]*?)\1(?=\s*(?:[,)]))/g,
 
-  // Composition API usage with multi-line support
-  /(?:^|\W)useI18n\(\)\.[tr]t\(\s*['"`]([^'"`]+)['"`]\s*(?:,[\s\S]*?)?\)/g,
+  // Object-style template usage - specifically $t in object templates
+  /\$t\s*:\s*(['"`])([\s\S]*?)\1/g,
 
-  // Object-style template usage - this one is fine as is because it specifically looks for $t:
-  /\$t\s*:\s*['"`]([^'"`]+)['"`]/g,
+  // Vue template directive v-t with inner quoted string inside attribute: v-t="'a.b'"
+  /v-t\s*=\s*(["'])\s*(["'`])([^"'`]+)\2\s*\1/g,
 
-  // Handle bracket notation
-  /(?:^|\W)\$?t\(['"]([^'"]+(?:\[['"][^'"]+['"]])*)['"]\)/g,
+  // Vue template directive v-t object form: v-t="{ path: 'a.b', ... }"
+  /v-t\s*=\s*(["'])[^>]*?\bpath\s*:\s*(["'`])([^"'`]+)\2[^>]*?\1/g,
+
+  // <i18n-t> component keypath static
+  /<i18n-t\b[^>]*\skeypath\s*=\s*(["'`])([^"'`]+)\1/g,
+  // <i18n-t> component keypath bound like :keypath="'a.b'"
+  /<i18n-t\b[^>]*\s:keypath\s*=\s*(["'])\s*(["'`])([^"'`]+)\2\s*\1/g,
+
+  // Also support legacy path attribute variants
+  /<i18n-t\b[^>]*\spath\s*=\s*(["'`])([^"'`]+)\1/g,
+  /<i18n-t\b[^>]*\s:path\s*=\s*(["'])\s*(["'`])([^"'`]+)\2\s*\1/g,
 ]

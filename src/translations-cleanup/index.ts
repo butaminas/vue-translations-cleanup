@@ -33,9 +33,28 @@ export async function cleanupTranslations(options: CleanupOptions) {
   // Find all used translation keys in files
   const usedKeys = await scanFiles(srcPath)
 
-  // Find unused translations
+  // Compute effective used leaves: a leaf is considered used if the exact leaf key is used or any of its parent prefixes is used
+  const effectiveUsedLeaves = new Set<string>()
+  for (const leaf of allTranslationKeys) {
+    let cursor = leaf
+    let matched = false
+    while (true) {
+      if (usedKeys.has(cursor)) {
+        matched = true
+        break
+      }
+      const idx = cursor.lastIndexOf('.')
+      if (idx === -1)
+        break
+      cursor = cursor.substring(0, idx)
+    }
+    if (matched)
+      effectiveUsedLeaves.add(leaf)
+  }
+
+  // Find unused translations based on effective used leaves
   const unusedTranslations = allTranslationKeys.filter(
-    key => !usedKeys.has(key),
+    key => !effectiveUsedLeaves.has(key),
   )
 
   // Create result object
@@ -46,6 +65,20 @@ export async function cleanupTranslations(options: CleanupOptions) {
     unusedKeys: unusedTranslations.length,
     unusedTranslations,
     cleaned: false,
+  }
+
+  // Helper to prune empty objects anywhere in the tree
+  const pruneEmptyObjects = (obj: any): void => {
+    if (!obj || typeof obj !== 'object')
+      return
+    for (const key of Object.keys(obj)) {
+      const val = (obj as any)[key]
+      if (val && typeof val === 'object') {
+        pruneEmptyObjects(val)
+        if (val && typeof val === 'object' && Object.keys(val).length === 0)
+          delete (obj as any)[key]
+      }
+    }
   }
 
   if (unusedTranslations.length > 0 && !dryRun) {
@@ -59,16 +92,30 @@ export async function cleanupTranslations(options: CleanupOptions) {
       for (const unusedPath of unusedPaths) {
         const parts = unusedPath.split('.')
         let current: any = result
+        const stack: Array<{ parent: any, key: string }> = []
 
+        // Traverse to the parent of the leaf to delete, keeping a stack
         for (let i = 0; i < parts.length - 1; i++) {
-          if (current[parts[i]] === undefined)
+          const key = parts[i]
+          if (current == null || typeof current !== 'object' || current[key] === undefined) {
+            current = undefined
             break
-          current = current[parts[i]]
+          }
+          stack.push({ parent: current, key })
+          current = current[key]
         }
 
         const lastPart = parts[parts.length - 1]
-        if (current && typeof current === 'object')
+        if (current && typeof current === 'object' && Object.prototype.hasOwnProperty.call(current, lastPart)) {
           delete current[lastPart]
+
+          // Prune empty parent objects recursively up to the root
+          while (stack.length > 0 && current && typeof current === 'object' && Object.keys(current).length === 0) {
+            const { parent, key } = stack.pop()!
+            delete parent[key]
+            current = parent
+          }
+        }
       }
 
       return result
@@ -79,11 +126,14 @@ export async function cleanupTranslations(options: CleanupOptions) {
       unusedTranslations,
     )
 
+    // Final global pruning pass to drop any empty objects (including root-level empties)
+    pruneEmptyObjects(cleanedTranslations)
+
     if (backup) {
       const backupPath = `${translationFile}.backup`
       fs.copyFileSync(translationFile, backupPath)
       if (verbose)
-        console.log(`Backup created at: ${backupPath}`)
+        console.warn(`Backup created at: ${backupPath}`)
     }
 
     fs.writeFileSync(
@@ -91,6 +141,24 @@ export async function cleanupTranslations(options: CleanupOptions) {
       JSON.stringify(cleanedTranslations, null, 2),
     )
     result.cleaned = true
+  }
+  else if (!dryRun) {
+    // Prune-only run: remove empty objects even when there are no unused leaf keys
+    const pruned = JSON.parse(JSON.stringify(translations)) as TranslationObject
+    pruneEmptyObjects(pruned)
+    if (JSON.stringify(pruned) !== JSON.stringify(translations)) {
+      if (backup) {
+        const backupPath = `${translationFile}.backup`
+        fs.copyFileSync(translationFile, backupPath)
+        if (verbose)
+          console.warn(`Backup created at: ${backupPath}`)
+      }
+      fs.writeFileSync(
+        translationFile,
+        JSON.stringify(pruned, null, 2),
+      )
+      result.cleaned = true
+    }
   }
 
   return result
