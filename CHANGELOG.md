@@ -2,6 +2,17 @@
 
 
 
+## [1.5.0](https://github.com/butaminas/vue-translations-cleanup/compare/v1.3.0...v1.5.0) (2025-09-07)
+
+### Features
+
+* add GitHub Actions workflow for automated release management ([e49a2cd](https://github.com/butaminas/vue-translations-cleanup/commit/e49a2cd83e178ca40de5ad86c3ca12bca9b09e79))
+* add simple-release configuration file ([d0936f4](https://github.com/butaminas/vue-translations-cleanup/commit/d0936f4cfd1d5aa7ca6054c9f9ddb009c42c9d46))
+
+### Bug Fixes
+
+* update simple-release configuration to use core project and add npm/github addons ([ec8a058](https://github.com/butaminas/vue-translations-cleanup/commit/ec8a0589a38d304d2e7176acf8a2881808d467a0))
+
 ## [1.4.0](https://github.com/butaminas/vue-translations-cleanup/compare/v1.3.0...v1.4.0) (2025-09-07)
 
 ### Features
