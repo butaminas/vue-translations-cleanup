@@ -39,7 +39,7 @@ function baseDirFromInclude(includePath: string): string {
     return path.dirname(before)
   }
   // If it ends with a file (e.g., .json), use its dirname
-  if (/\.\w+$/i.test(includePath))
+  if (/\.\w+$/.test(includePath))
     return path.dirname(includePath)
   return includePath
 }

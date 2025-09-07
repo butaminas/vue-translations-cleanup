@@ -5,7 +5,7 @@ import { cleanupTranslations } from '../../src/translations-cleanup'
 
 // fs and glob are mocked in tests/setup.ts
 
-describe('Vue template directives and components detection', () => {
+describe('vue template directives and components detection', () => {
   it('detects v-t directive with static string and object path', async () => {
     const translations = {
       labels: {

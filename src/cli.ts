@@ -143,7 +143,6 @@ async function run() {
   let anyCleaned = false
 
   for (const file of files) {
-    /* eslint-disable no-await-in-loop */
     const result = await cleanupTranslations({
       translationFile: file,
       srcPath: absSrc,
