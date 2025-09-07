@@ -1,20 +1,20 @@
 export const translationPatterns = [
   // t() / $t() with quotes and multi-line support — match only the first argument (stop before , or ))
-  /(?:^|\W)\$?t\(\s*(['"])([\s\S]*?)\1(?=\s*(?:[,)]))/g,
+  /(?:^|\W)\$?t\(\s*(['"])([\s\S]*?)\1(?=\s*[,)])/g,
 
   // Template literals with multi-line support — match only first arg
-  /(?:^|\W)\$?t\(\s*`([^`]+)`(?=\s*(?:[,)]))/g,
+  /(?:^|\W)\$?t\(\s*`([^`]+)`(?=\s*[,)])/g,
 
   // rt() and $rt support — first arg only
-  /(?:^|\W)\$?rt\(\s*(['"])([\s\S]*?)\1(?=\s*(?:[,)]))/g,
-  /(?:^|\W)\$?rt\(\s*`([^`]+)`(?=\s*(?:[,)]))/g,
+  /(?:^|\W)\$?rt\(\s*(['"])([\s\S]*?)\1(?=\s*[,)])/g,
+  /(?:^|\W)\$?rt\(\s*`([^`]+)`(?=\s*[,)])/g,
 
   // tc() and $tc() — first arg only
-  /(?:^|\W)\$?tc\(\s*(['"])([\s\S]*?)\1(?=\s*(?:[,)]))/g,
-  /(?:^|\W)\$?tc\(\s*`([^`]+)`(?=\s*(?:[,)]))/g,
+  /(?:^|\W)\$?tc\(\s*(['"])([\s\S]*?)\1(?=\s*[,)])/g,
+  /(?:^|\W)\$?tc\(\s*`([^`]+)`(?=\s*[,)])/g,
 
   // Composition API usage — first arg only
-  /(?:^|\W)useI18n\(\)\.(?:t|rt|tc)\(\s*(['"`])([\s\S]*?)\1(?=\s*(?:[,)]))/g,
+  /(?:^|\W)useI18n\(\)\.(?:t|rt|tc)\(\s*(['"`])([\s\S]*?)\1(?=\s*[,)])/g,
 
   // Object-style template usage - specifically $t in object templates
   /\$t\s*:\s*(['"`])([\s\S]*?)\1/g,

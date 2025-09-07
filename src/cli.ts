@@ -3,6 +3,9 @@ import fs from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
 import { Command } from 'commander'
+import { glob } from 'glob'
+import { detectConfig } from './cli-detection'
+import { c, separator, symbols } from './cli-style'
 import { cleanupTranslations } from './translations-cleanup'
 
 function readPkgVersion(): string {
@@ -23,8 +26,8 @@ program
   .name('vue-translations-cleanup')
   .description('Clean up unused translation keys in your i18n files')
   .version(readPkgVersion())
-  .requiredOption('-t, --translation-file <path>', 'Path to translation file')
-  .requiredOption('-s, --src-path <path>', 'Path to source files')
+  .option('-t, --translation-file <path>', 'Path to translation file or directory (if omitted, try auto-detect)')
+  .option('-s, --src-path <path>', 'Path to source files (if omitted, try auto-detect)')
   .option('-n, --dry-run', 'Show what would be removed without making changes')
   .option('--no-backup', 'Skip creating backup file')
   .option('-v, --verbose', 'Show detailed output')
@@ -34,18 +37,57 @@ program.parse()
 
 const options = program.opts()
 
-// Convert relative paths to absolute paths
-const translationFile = path.resolve(process.cwd(), options.translationFile)
-const srcPath = path.resolve(process.cwd(), options.srcPath)
+async function run() {
+  let translationTarget: string | undefined = options.translationFile
+  let srcPath: string | undefined = options.srcPath
 
-cleanupTranslations({
-  translationFile,
-  srcPath,
-  backup: options.backup,
-  dryRun: options.dryRun,
-  verbose: options.verbose,
-})
-  .then((result) => {
+  // Auto-detect when missing
+  if (!translationTarget || !srcPath) {
+    const detected = await detectConfig(process.cwd())
+    if (!translationTarget && detected.translationsPath)
+      translationTarget = detected.translationsPath
+    if (!srcPath && detected.srcPath)
+      srcPath = detected.srcPath
+
+    if (options.verbose) {
+      console.log(separator('Auto-detection'))
+      console.log(c.strong('[vue-translations-cleanup] Auto-detection:'))
+      console.log(c.dim(`${symbols.info} srcPath:`), srcPath || c.warn('not detected'))
+      console.log(c.dim(`${symbols.info} translationsPath:`), translationTarget || c.warn('not detected'))
+      if (detected.reason)
+        console.log(c.dim(`${symbols.warn} note:`), detected.reason)
+    }
+  }
+
+  if (!translationTarget || !srcPath) {
+    console.error('Could not determine required paths. Please specify:')
+    console.error('  -t, --translation-file <path-to-file-or-directory>')
+    console.error('  -s, --src-path <path-to-source>')
+    process.exit(1)
+  }
+
+  // Resolve to absolute paths
+  const absTranslations = path.resolve(process.cwd(), translationTarget)
+  const absSrc = path.resolve(process.cwd(), srcPath)
+  // Try to detect if translations target is a directory; if stat fails, treat as file
+  let isDir = false
+  try {
+    isDir = fs.statSync(absTranslations).isDirectory()
+  }
+  catch {
+    isDir = false
+  }
+
+  if (!isDir) {
+    const translationFile = absTranslations
+    const result = await cleanupTranslations({
+      translationFile,
+      srcPath: absSrc,
+      backup: options.backup,
+      dryRun: options.dryRun,
+      verbose: options.verbose,
+    })
+
     if (options.verbose) {
       console.log('\nResults:')
       console.log('Total translation keys:', result.totalKeys)
@@ -53,7 +95,7 @@ cleanupTranslations({
       console.log('Unused keys:', result.unusedKeys)
     }
     else {
-      console.log(`\nFound ${result.unusedKeys} unused translation keys out of ${result.totalKeys} total keys`)
+      console.log(c.info(`\n${symbols.info} Found ${result.unusedKeys} unused translation keys out of ${result.totalKeys} total keys`))
     }
 
     if (result.unusedKeys > 0) {
@@ -63,26 +105,80 @@ cleanupTranslations({
       }
 
       if (options.dryRun) {
-        console.log('\nDry run - no changes made')
+        console.log(c.dim('\nDry run - no changes made'))
       }
       else if (result.cleaned) {
-        console.log(`\nTranslations file has been updated: ${translationFile}`)
+        console.log(c.success(`\n${symbols.success} Translations file has been updated: ${translationFile}`))
         if (options.backup) {
-          console.log(`Backup created at: ${translationFile}.backup`)
+          console.log(c.dim(`Backup created at: ${translationFile}.backup`))
         }
       }
     }
     else {
-      console.log('\nNo unused translations found ✓')
+      console.log(c.success(`\n${symbols.success} No unused translations found`))
       if (result.cleaned && !options.dryRun) {
-        console.log(`Pruned empty groups. Translations file has been updated: ${translationFile}`)
+        console.log(c.dim(`Pruned empty groups. Translations file has been updated: ${translationFile}`))
         if (options.backup) {
-          console.log(`Backup created at: ${translationFile}.backup`)
+          console.log(c.dim(`Backup created at: ${translationFile}.backup`))
         }
       }
     }
-  })
-  .catch((error) => {
-    console.error('Error:', error.message)
+
+    return
+  }
+
+  // Directory mode
+  const jsons = await glob('**/*.json', { cwd: absTranslations, nodir: true })
+  const files = jsons.map(rel => path.join(absTranslations, rel))
+  if (files.length === 0) {
+    console.error(`No JSON files found in directory: ${absTranslations}`)
     process.exit(1)
-  })
+  }
+  if (options.verbose) {
+    console.log(separator(`Found ${files.length} translation files`))
+    console.log(c.dim(absTranslations))
+  }
+
+  let totalUnused = 0
+  let anyCleaned = false
+
+  for (const file of files) {
+    /* eslint-disable no-await-in-loop */
+    const result = await cleanupTranslations({
+      translationFile: file,
+      srcPath: absSrc,
+      backup: options.backup,
+      dryRun: options.dryRun,
+      verbose: options.verbose,
+    })
+
+    totalUnused += result.unusedKeys
+    anyCleaned = anyCleaned || result.cleaned
+
+    if (options.verbose) {
+      console.log(`\n${c.info(`[${path.relative(process.cwd(), file)}] -> unused: ${result.unusedKeys}/${result.totalKeys}`)}`)
+      if (result.unusedKeys > 0) {
+        console.log(c.strong('Unused translations:'))
+        console.log(result.unusedTranslations.join('\n'))
+      }
+      if (result.cleaned && !options.dryRun) {
+        console.log(c.success(`Updated file (backup ${options.backup ? 'created' : 'skipped'})`))
+      }
+    }
+  }
+
+  if (!options.verbose) {
+    console.log(c.info(`\n${symbols.info} Found ${totalUnused} unused translation keys across ${files.length} file(s)`))
+  }
+
+  if (totalUnused === 0) {
+    console.log(c.success(`\n${symbols.success} No unused translations found`))
+    if (anyCleaned && !options.dryRun)
+      console.log(c.dim('Pruned empty groups. Some translation files were updated.'))
+  }
+}
+
+run().catch((error) => {
+  console.error('Error:', error.message)
+  process.exit(1)
+})
