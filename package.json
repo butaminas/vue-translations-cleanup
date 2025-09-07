@@ -12,7 +12,10 @@
     "test": "vitest --run",
     "lint": "eslint src/**/*.ts",
     "prepublishOnly": "pnpm run build",
-    "changelog": "git fetch --tags --prune && conventional-changelog -p angular -i CHANGELOG.md -s -r 0 --tag-prefix v"
+    "changelog": "git fetch --tags --prune && conventional-changelog -p angular -i CHANGELOG.md -s -r 0 --tag-prefix v",
+    "release:patch": "commit-and-tag-version --release-as patch && npm run changelog",
+    "release:minor": "commit-and-tag-version --release-as minor && npm run changelog",
+    "release:major": "commit-and-tag-version --release-as major && npm run changelog"
   },
   "keywords": [
     "i18n",
@@ -30,12 +33,19 @@
     "eslint": "^9.35.0",
     "typescript": "^5.9.2",
     "vitest": "^3.2.4",
-    "conventional-changelog-cli": "^4.1.0"
+    "conventional-changelog-cli": "^4.1.0",
+    "commit-and-tag-version": "^12.4.0"
   },
   "dependencies": {
     "commander": "^14.0.0",
     "glob": "^11.0.3",
     "kleur": "^4.1.5"
+  },
+  "commit-and-tag-version": {
+    "tagPrefix": "v",
+    "skip": {
+      "changelog": true
+    }
   },
   "files": [
     "dist",
