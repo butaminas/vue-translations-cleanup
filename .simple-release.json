@@ -1,0 +1,8 @@
+{
+  "project": [
+    "@simple-release/pnpm#PnpmWorkspacesProject",
+    {
+      "mode": "fixed"
+    }
+  ]
+}
