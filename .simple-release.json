@@ -1,8 +1,10 @@
 {
   "project": [
-    "@simple-release/pnpm#PnpmWorkspacesProject",
-    {
-      "mode": "fixed"
-    }
+    "@simple-release/core#PackageJsonProject",
+    {}
+  ],
+  "addons": [
+    ["@simple-release/npm#NpmAddon", {}],
+    ["@simple-release/github#GithubAddon", {}]
   ]
 }
