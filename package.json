@@ -11,7 +11,8 @@
     "build": "tsc",
     "test": "vitest --run",
     "lint": "eslint src/**/*.ts",
-    "prepublishOnly": "pnpm run build"
+    "prepublishOnly": "pnpm run build",
+    "changelog": "git fetch --tags --prune && conventional-changelog -p angular -i CHANGELOG.md -s -r 0 --tag-prefix v"
   },
   "keywords": [
     "i18n",
@@ -28,7 +29,8 @@
     "@types/node": "^24.3.1",
     "eslint": "^9.35.0",
     "typescript": "^5.9.2",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "conventional-changelog-cli": "^4.1.0"
   },
   "dependencies": {
     "commander": "^14.0.0",
