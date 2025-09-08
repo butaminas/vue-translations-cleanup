@@ -59,7 +59,7 @@ npx vue-translations-cleanup
 # See what was detected (verbose)
 npx vue-translations-cleanup --verbose
 
-# Manual single-file mode (same as before)
+# Manual single-file mode
 npx vue-translations-cleanup -t ./src/translations/en.json -s ./src
 
 # Directory-wide cleanup: provide a folder containing multiple JSON translation files
