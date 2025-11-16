@@ -1,36 +1,70 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { detectI18nPatterns, getImportTemplate, shouldUseGlobalT } from '@/extract-strings/i18nPatternDetector'
 
+// Mock the file system using memfs
+const { vol } = vi.hoisted(() => {
+  const { vol } = require('memfs')
+  return { vol }
+})
+
+vi.mock('node:fs', () => ({ default: vol }))
+vi.mock('node:fs/promises', () => vol.promises)
+
+// Mock glob to use the virtual file system
+vi.mock('glob', async (importOriginal) => {
+  const { Glob } = await importOriginal<typeof import('glob')>()
+  return {
+    glob: async (pattern: string, options: any) => {
+      // Use the mocked fs by manually finding files
+      const cwd = options?.cwd || process.cwd()
+      const files: string[] = []
+
+      const collectFiles = (dir: string) => {
+        try {
+          const entries = vol.readdirSync(dir, { withFileTypes: true })
+          for (const entry of entries) {
+            const fullPath = path.join(dir, entry.name)
+            if (entry.isDirectory()) {
+              collectFiles(fullPath)
+            }
+            else if (entry.isFile()) {
+              // Simple pattern matching - just check if filename matches
+              const relativePath = path.relative(cwd, fullPath)
+              if (pattern.includes('**/*.vue') && fullPath.endsWith('.vue')) {
+                files.push(options?.absolute ? fullPath : relativePath)
+              }
+              else if (pattern.includes('**/*.ts') && fullPath.endsWith('.ts')) {
+                files.push(options?.absolute ? fullPath : relativePath)
+              }
+            }
+          }
+        }
+        catch (err) {
+          // Directory doesn't exist or can't be read
+        }
+      }
+
+      collectFiles(cwd)
+      return files
+    },
+  }
+})
+
 describe('i18nPatternDetector', () => {
-  let testDir: string
+  const testDir = '/test'
 
   beforeEach(() => {
-    // Create a unique temporary directory using timestamp and random string
-    const uniqueId = `i18n-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`
-    testDir = path.join(__dirname, 'tmp', uniqueId)
-    fs.mkdirSync(testDir, { recursive: true })
+    // Clear the virtual file system
+    vol.reset()
+    // Create test directory
+    vol.mkdirSync(testDir, { recursive: true })
   })
 
   afterEach(() => {
-    // Clean up the temporary directory
-    if (fs.existsSync(testDir)) {
-      fs.rmSync(testDir, { recursive: true, force: true })
-    }
-    // Clean up parent tmp directory if empty
-    const tmpDir = path.join(__dirname, 'tmp')
-    if (fs.existsSync(tmpDir)) {
-      try {
-        const files = fs.readdirSync(tmpDir)
-        if (files.length === 0) {
-          fs.rmdirSync(tmpDir)
-        }
-      }
-      catch {
-        // Ignore errors
-      }
-    }
+    // Clear the virtual file system
+    vol.reset()
   })
 
   describe('detectI18nPatterns', () => {

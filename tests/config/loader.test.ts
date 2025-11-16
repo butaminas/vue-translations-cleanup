@@ -1,37 +1,31 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { findConfigFile, loadConfig, loadConfigFile } from '@/config/loader'
 import type { ToolConfig } from '@/config/types'
 
+// Mock the file system using memfs
+const { vol } = vi.hoisted(() => {
+  const { vol } = require('memfs')
+  return { vol }
+})
+
+vi.mock('node:fs', () => ({ default: vol }))
+vi.mock('node:fs/promises', () => vol.promises)
+
 describe('config/loader', () => {
-  let testDir: string
+  const testDir = '/test'
 
   beforeEach(() => {
-    // Create a unique temporary directory using timestamp and random string
-    const uniqueId = `loader-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`
-    testDir = path.join(__dirname, 'tmp', uniqueId)
-    fs.mkdirSync(testDir, { recursive: true })
+    // Clear the virtual file system
+    vol.reset()
+    // Create test directory
+    vol.mkdirSync(testDir, { recursive: true })
   })
 
   afterEach(() => {
-    // Clean up the temporary directory
-    if (fs.existsSync(testDir)) {
-      fs.rmSync(testDir, { recursive: true, force: true })
-    }
-    // Clean up parent tmp directory if empty
-    const tmpDir = path.join(__dirname, 'tmp')
-    if (fs.existsSync(tmpDir)) {
-      try {
-        const files = fs.readdirSync(tmpDir)
-        if (files.length === 0) {
-          fs.rmdirSync(tmpDir)
-        }
-      }
-      catch {
-        // Ignore errors
-      }
-    }
+    // Clear the virtual file system
+    vol.reset()
   })
 
   describe('findConfigFile', () => {
