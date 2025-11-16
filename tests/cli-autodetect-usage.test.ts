@@ -1,7 +1,12 @@
 import type { MockInstance } from 'vitest'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-// We will mock detectConfig and cleanupTranslations per test
+// Mock config loader
+vi.mock('@/config/loader', () => ({
+  loadConfig: vi.fn().mockResolvedValue(null),
+  loadConfigFile: vi.fn(),
+  findConfigFile: vi.fn(),
+}))
 
 describe('cli auto-detect usage', () => {
   let consoleLogSpy: MockInstance

@@ -12,6 +12,13 @@ vi.mock('@/translations-cleanup', () => ({
   }),
 }))
 
+// Mock config loader
+vi.mock('@/config/loader', () => ({
+  loadConfig: vi.fn().mockResolvedValue(null),
+  loadConfigFile: vi.fn(),
+  findConfigFile: vi.fn(),
+}))
+
 describe('cLI', () => {
   let consoleLogSpy: MockInstance
   let consoleErrorSpy: MockInstance

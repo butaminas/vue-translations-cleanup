@@ -7,6 +7,9 @@ import { glob } from 'glob'
 import { detectConfig } from './cli-detection'
 import { c, separator, symbols } from './cli-style'
 import { cleanupTranslations } from './translations-cleanup'
+import { loadConfig } from './config/loader'
+import { validateConfig } from './config/validator'
+import { runExtraction } from './extract-strings/orchestrator'
 
 function readPkgVersion(): string {
   try {
@@ -28,7 +31,9 @@ program
   .version(readPkgVersion())
   .option('-t, --translation-file <path>', 'Path to translation file or directory (if omitted, try auto-detect)')
   .option('-s, --src-path <path>', 'Path to source files (if omitted, try auto-detect)')
-  .option('-n, --dry-run', 'Show what would be removed without making changes')
+  .option('-c, --config <path>', 'Path to config file (vue-translations-cleanup.config.{ts,mjs,json})')
+  .option('--extract', 'Extract raw strings and create i18n keys (instead of cleanup)')
+  .option('-n, --dry-run', 'Show what would be removed/changed without making changes')
   .option('--no-backup', 'Skip creating backup file')
   .option('-v, --verbose', 'Show detailed output')
   .option('-p, --pattern <glob>', 'File pattern to scan (default: "**/*.{vue,js,ts}")')
@@ -38,8 +43,39 @@ program.parse()
 const options = program.opts()
 
 async function run() {
-  let translationTarget: string | undefined = options.translationFile
-  let srcPath: string | undefined = options.srcPath
+  // Load config file if provided
+  let config = null
+  if (options.config) {
+    const configPath = path.resolve(process.cwd(), options.config)
+    config = await loadConfig(path.dirname(configPath), configPath)
+
+    if (!config) {
+      console.error(`Config file not found: ${options.config}`)
+      process.exit(1)
+    }
+
+    // Validate and merge with defaults
+    config = validateConfig(config)
+
+    if (options.verbose) {
+      console.log(c.info(`${symbols.info} Loaded config from: ${options.config}`))
+    }
+  }
+  else {
+    // Try to auto-load config
+    config = await loadConfig(process.cwd())
+
+    if (config) {
+      config = validateConfig(config)
+
+      if (options.verbose) {
+        console.log(c.info(`${symbols.info} Auto-loaded config file`))
+      }
+    }
+  }
+
+  let translationTarget: string | undefined = options.translationFile || config?.translationFile
+  let srcPath: string | undefined = options.srcPath || config?.srcPath
 
   // Auto-detect when missing
   if (!translationTarget || !srcPath) {
@@ -63,8 +99,49 @@ async function run() {
     console.error('Could not determine required paths. Please specify:')
     console.error('  -t, --translation-file <path-to-file-or-directory>')
     console.error('  -s, --src-path <path-to-source>')
+    console.error('  or provide a config file with --config')
     process.exit(1)
   }
+
+  // === EXTRACT MODE ===
+  if (options.extract) {
+    const absTranslations = path.resolve(process.cwd(), translationTarget)
+    const absSrc = path.resolve(process.cwd(), srcPath)
+
+    // For extract mode, translation file must be a file, not a directory
+    const isDir = fs.existsSync(absTranslations) && fs.statSync(absTranslations).isDirectory()
+
+    if (isDir) {
+      console.error('Error: --extract mode requires a specific translation file, not a directory')
+      console.error('Please specify a single JSON file with -t, --translation-file')
+      process.exit(1)
+    }
+
+    // Ensure config is loaded (use defaults if not)
+    if (!config) {
+      config = validateConfig({})
+    }
+
+    console.log(c.strong('\n=== String Extraction Mode ===\n'))
+
+    try {
+      await runExtraction({
+        translationFile: absTranslations,
+        srcPath: absSrc,
+        config,
+        dryRun: options.dryRun,
+        verbose: options.verbose,
+      })
+    }
+    catch (error) {
+      console.error(c.error(`\n${symbols.error} Extraction failed:`), error)
+      process.exit(1)
+    }
+
+    return
+  }
+
+  // === CLEANUP MODE (default) ===
 
   // Resolve to absolute paths
   const absTranslations = path.resolve(process.cwd(), translationTarget)
