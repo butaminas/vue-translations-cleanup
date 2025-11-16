@@ -68,19 +68,6 @@ export interface ExtractConfig {
    * @default false
    */
   interactive?: boolean
-
-  /**
-   * Enable automatic translation to other languages (requires AI enabled)
-   * @default false
-   */
-  autoTranslate?: boolean
-
-  /**
-   * Target languages for auto-translation (e.g., ['de', 'fr', 'nl'])
-   * Only used when autoTranslate is enabled
-   * @default []
-   */
-  languages?: string[]
 }
 
 export interface AIConfig {
@@ -123,6 +110,21 @@ export interface AIConfig {
    * @default 30000
    */
   timeout?: number
+
+  /**
+   * Enable automatic translation to multiple languages
+   * Requires AI to be enabled (enabled: true)
+   * @default false
+   */
+  autoTranslate?: boolean
+
+  /**
+   * Target languages for auto-translation (e.g., ['de', 'fr', 'nl'])
+   * Only used when autoTranslate is enabled
+   * The source language is determined by extract.targetLanguage
+   * @default []
+   */
+  languages?: string[]
 }
 
 export interface CleanupConfig {

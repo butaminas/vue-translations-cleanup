@@ -149,10 +149,6 @@ const config: ToolConfig = {
     includeAttributes: ['placeholder', 'title', 'alt', 'label', 'aria-label'],
     excludePatterns: ['**/node_modules/**', '**/*.spec.ts'],
 
-    // Auto-translate to other languages (requires AI enabled)
-    autoTranslate: true,
-    languages: ['de', 'fr', 'nl'], // Automatically translate extracted keys to these languages
-
     // Custom i18n patterns (for non-standard setups)
     i18nPatterns: [
       {
@@ -170,6 +166,10 @@ const config: ToolConfig = {
     model: 'codellama',
     baseUrl: 'http://localhost:11434',
     timeout: 30000,
+
+    // Auto-translate extracted keys to multiple languages
+    autoTranslate: true,
+    languages: ['de', 'fr', 'nl'], // Target languages for auto-translation
   },
 
   // Cleanup settings
@@ -354,22 +354,20 @@ For even better translation key naming, enable AI support:
 
 The AI analyzes the context (file path, component name, nearby code) to suggest better key names. If AI fails, it gracefully falls back to heuristic-based generation.
 
-### Auto-Translation to Multiple Languages (AI Required)
+### Auto-Translation to Multiple Languages
 
-**⚠️ Requires AI enabled** - Without AI, the `languages` config is ignored.
-
-Automatically translate extracted keys to multiple languages:
+Automatically translate extracted keys to multiple languages using AI:
 
 ```typescript
 {
-  extract: {
-    autoTranslate: true,
-    languages: ['de', 'fr', 'nl'],
-  },
   ai: {
     enabled: true,  // REQUIRED
     provider: 'ollama',
     model: 'codellama',
+
+    // Auto-translation config
+    autoTranslate: true,
+    languages: ['de', 'fr', 'nl'],
   }
 }
 ```

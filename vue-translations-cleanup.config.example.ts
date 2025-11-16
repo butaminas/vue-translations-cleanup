@@ -74,7 +74,7 @@ const config: ToolConfig = {
     interactive: false,
   },
 
-  // AI configuration (optional, for better key generation)
+  // AI configuration (optional, for better key generation and auto-translation)
   ai: {
     // Enable AI-powered features
     enabled: false,
@@ -103,6 +103,15 @@ const config: ToolConfig = {
     // headers: {
     //   'X-Custom-Header': 'value',
     // },
+
+    // Auto-translate extracted strings to multiple languages
+    // Requires AI to be enabled (enabled: true)
+    autoTranslate: false,
+
+    // Target languages for auto-translation (e.g., ['de', 'fr', 'nl'])
+    // The source language is determined by extract.targetLanguage (default: 'en')
+    // Only used when autoTranslate is enabled
+    languages: [],
   },
 
   // Cleanup configuration (applies to both cleanup and extract modes)

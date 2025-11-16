@@ -523,9 +523,9 @@ Built-in language names for better translation quality:
 
 **Integration with Orchestrator**:
 Auto-translation runs as optional Step 6 in the extraction pipeline when:
-- `extract.autoTranslate` is `true`
-- `extract.languages` array is not empty
-- AI client is available and configured
+- `ai.autoTranslate` is `true`
+- `ai.languages` array is not empty
+- AI client is available and configured (ai.enabled is true)
 
 ### CLI Integration
 
@@ -621,6 +621,8 @@ interface AIConfig {
   apiKey?: string
   timeout?: number
   headers?: Record<string, string>
+  autoTranslate?: boolean           // Auto-translate to multiple languages
+  languages?: string[]               // Target languages (e.g., ['de', 'fr', 'nl'])
 }
 ```
 
