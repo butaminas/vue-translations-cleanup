@@ -354,49 +354,39 @@ For even better translation key naming, enable AI support:
 
 The AI analyzes the context (file path, component name, nearby code) to suggest better key names. If AI fails, it gracefully falls back to heuristic-based generation.
 
-### Auto-Translation to Multiple Languages
+### Auto-Translation to Multiple Languages (AI Required)
 
-When AI is enabled, you can automatically translate extracted keys to other languages:
+**⚠️ Requires AI enabled** - Without AI, the `languages` config is ignored.
+
+Automatically translate extracted keys to multiple languages:
 
 ```typescript
 {
   extract: {
-    targetLanguage: 'en',       // Source language
-    autoTranslate: true,        // Enable auto-translation
-    languages: ['de', 'fr', 'nl'], // Target languages
+    autoTranslate: true,
+    languages: ['de', 'fr', 'nl'],
   },
   ai: {
-    enabled: true,
-    // ... AI configuration
+    enabled: true,  // REQUIRED
+    provider: 'ollama',
+    model: 'codellama',
   }
 }
 ```
 
-**How it works:**
-1. Extracts raw strings from your code
-2. Creates translation keys in the source language (e.g., `en.json`)
-3. Automatically translates new keys to target languages (e.g., `de.json`, `fr.json`, `nl.json`)
-4. Preserves existing translations (only translates new keys)
-5. Maintains placeholders, HTML tags, and formatting
+**Behavior:**
+- Only **new keys** are translated (existing translations preserved)
+- Creates language files if they don't exist
+- Maintains placeholders and formatting
 
-**Example workflow:**
 ```bash
-# With auto-translation enabled, run extraction:
 npx vue-translations-cleanup --extract
 
-# Result:
-# - locales/en.json: { "greeting": "Hello {name}" }
-# - locales/de.json: { "greeting": "Hallo {name}" }  (auto-translated)
-# - locales/fr.json: { "greeting": "Bonjour {name}" } (auto-translated)
+# Creates/updates:
+# locales/en.json: { "greeting": "Hello" }
+# locales/de.json: { "greeting": "Hallo" }     ← AI translated
+# locales/fr.json: { "greeting": "Bonjour" }   ← AI translated
 ```
-
-**Benefits:**
-- Saves time on initial translation setup
-- Ensures consistent translation structure across languages
-- Ideal for prototyping multilingual apps quickly
-- Professional translators can review/refine AI translations later
-
-**Note:** Without AI, auto-translation requires external services like Google Translate or DeepL APIs. Currently, only AI-based translation is supported out of the box.
 
 ## Notes & Limitations
 
