@@ -276,6 +276,125 @@ Respond with JSON in this format:
   }
 
   /**
+   * Translate text to target language
+   */
+  async translateText(
+    text: string,
+    targetLanguage: string,
+    context?: {
+      key?: string
+      sourceLanguage?: string
+      category?: string
+    },
+  ): Promise<{ translation: string, confidence: number }> {
+    const prompt = this.buildTranslationPrompt(text, targetLanguage, context)
+
+    try {
+      const response = await this.callLLM(prompt)
+      return this.parseTranslationResponse(response)
+    }
+    catch (error) {
+      const err = error as Error
+      console.error(`AI translation failed: ${err.message}`)
+      throw error
+    }
+  }
+
+  /**
+   * Build prompt for translation
+   */
+  private buildTranslationPrompt(
+    text: string,
+    targetLanguage: string,
+    context?: {
+      key?: string
+      sourceLanguage?: string
+      category?: string
+    },
+  ): string {
+    const sourceLang = context?.sourceLanguage || 'English'
+    const langNames: Record<string, string> = {
+      en: 'English',
+      de: 'German',
+      fr: 'French',
+      es: 'Spanish',
+      it: 'Italian',
+      nl: 'Dutch',
+      pt: 'Portuguese',
+      ru: 'Russian',
+      ja: 'Japanese',
+      zh: 'Chinese',
+      ko: 'Korean',
+      ar: 'Arabic',
+      hi: 'Hindi',
+    }
+    const targetLangName = langNames[targetLanguage] || targetLanguage
+
+    return `You are a professional translator. Translate the following text from ${sourceLang} to ${targetLangName}.
+
+Text to translate: "${text}"
+
+Context:
+${context?.key ? `- Translation key: ${context.key}` : ''}
+${context?.category ? `- Category: ${context.category}` : ''}
+
+Requirements:
+- Preserve any HTML tags, variables, or placeholders exactly as they appear (e.g., {name}, {{count}}, <strong>, etc.)
+- Maintain the same tone and formality level
+- Use natural, idiomatic expressions in ${targetLangName}
+- Keep technical terms consistent
+- Preserve capitalization style (if all caps, keep all caps)
+
+Respond with JSON in this format:
+{
+  "translation": "your translation here",
+  "confidence": 0.95
+}`
+  }
+
+  /**
+   * Parse translation response
+   */
+  private parseTranslationResponse(response: string): { translation: string, confidence: number } {
+    try {
+      const jsonMatch = response.match(/\{[\s\S]*\}/)
+      if (!jsonMatch) {
+        throw new Error('No JSON found in response')
+      }
+
+      const parsed = JSON.parse(jsonMatch[0])
+
+      return {
+        translation: parsed.translation || '',
+        confidence: parsed.confidence || 0.5,
+      }
+    }
+    catch (error) {
+      console.warn('Failed to parse AI translation response, extracting text manually')
+
+      // Fallback: try to extract translation from response
+      const translationMatch = response.match(/["']?translation["']?\s*:\s*["']([^"']+)["']/)
+      if (translationMatch) {
+        return {
+          translation: translationMatch[1],
+          confidence: 0.3,
+        }
+      }
+
+      // Last resort: use the entire response as translation
+      const cleanedResponse = response.trim().replace(/^["']|["']$/g, '')
+      if (cleanedResponse.length > 0) {
+        return {
+          translation: cleanedResponse,
+          confidence: 0.2,
+        }
+      }
+
+      throw new Error('Could not parse AI translation response')
+    }
+  }
+
+  /**
    * Test connection to the LLM
    */
   async testConnection(): Promise<boolean> {

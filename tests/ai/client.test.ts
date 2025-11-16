@@ -250,6 +250,73 @@ describe('AIClient', () => {
     })
   })
 
+  describe('translateText', () => {
+    it('should translate text to target language', async () => {
+      const client = new AIClient(mockOllamaConfig)
+
+      ;(global.fetch as any).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          response: JSON.stringify({
+            translation: 'Hallo',
+            confidence: 0.95,
+          }),
+        }),
+      })
+
+      const result = await client.translateText('Hello', 'de', {
+        key: 'greeting',
+        sourceLanguage: 'en',
+        category: 'common',
+      })
+
+      expect(result.translation).toBe('Hallo')
+      expect(result.confidence).toBe(0.95)
+
+      const fetchCall = (global.fetch as any).mock.calls[0]
+      const requestBody = JSON.parse(fetchCall[1].body)
+      expect(requestBody.prompt).toContain('Hello')
+      expect(requestBody.prompt).toContain('German')
+      expect(requestBody.prompt).toContain('greeting')
+    })
+
+    it('should handle malformed translation response', async () => {
+      const client = new AIClient(mockOllamaConfig)
+
+      ;(global.fetch as any).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          response: 'Hallo', // Not JSON format
+        }),
+      })
+
+      const result = await client.translateText('Hello', 'de')
+
+      expect(result.translation).toBe('Hallo')
+      expect(result.confidence).toBeLessThan(0.5)
+    })
+
+    it('should preserve placeholders in translation prompt', async () => {
+      const client = new AIClient(mockOllamaConfig)
+
+      ;(global.fetch as any).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          response: JSON.stringify({
+            translation: 'Hallo {name}',
+            confidence: 0.9,
+          }),
+        }),
+      })
+
+      await client.translateText('Hello {name}', 'de')
+
+      const fetchCall = (global.fetch as any).mock.calls[0]
+      const requestBody = JSON.parse(fetchCall[1].body)
+      expect(requestBody.prompt).toContain('Preserve any HTML tags, variables, or placeholders')
+    })
+  })
+
   describe('testConnection', () => {
     it('should return true for successful connection', async () => {
       const client = new AIClient(mockOllamaConfig)

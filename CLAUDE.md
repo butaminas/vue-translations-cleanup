@@ -66,7 +66,7 @@ vue-translations-cleanup/
 │   ├── cli.ts                        # CLI entry point and command handling
 │   ├── cli-detection.ts              # Auto-detection logic for paths
 │   └── cli-style.ts                  # CLI styling utilities (colors, symbols)
-├── tests/                            # Test files (154 tests total)
+├── tests/                            # Test files (176 tests total)
 │   ├── translations-cleanup/         # Core functionality tests (15 tests)
 │   │   ├── edgeCases.test.ts         # Edge case testing
 │   │   ├── pruning.test.ts           # Empty object pruning tests
@@ -164,11 +164,12 @@ yarn test
 - Auto-detection functionality
 - Directory mode processing
 - Vue template directives and components
-- **NEW**: String extraction pipeline (80 tests)
+- **NEW**: String extraction pipeline (84 tests)
 - **NEW**: Config file loading and validation (49 tests)
-- **NEW**: AI-powered key generation (13 tests)
+- **NEW**: AI-powered key generation and translation (19 tests)
+- **NEW**: Auto-translation to multiple languages (7 tests)
 
-**Total**: 154 tests, all passing
+**Total**: 176 tests, all passing
 
 **Test Isolation**:
 Tests use `memfs` to create virtual file systems, ensuring perfect isolation between test runs. This eliminates file system collision issues when tests run in parallel.
@@ -438,8 +439,9 @@ LLM client for AI-powered key generation.
 - Timeout handling with AbortController
 - Connection testing
 - Confidence scoring
+- **NEW**: Translation to multiple languages
 
-**Example Usage**:
+**Key Generation Example**:
 ```typescript
 const client = new AIClient({
   enabled: true,
@@ -456,6 +458,74 @@ const result = await client.generateKey('Submit button', {
 // result.key: "login_form.button.submit"
 // result.confidence: 0.9
 ```
+
+**Translation Example** (NEW):
+```typescript
+const result = await client.translateText('Hello {name}', 'de', {
+  key: 'greeting',
+  sourceLanguage: 'en',
+  category: 'common',
+})
+// result.translation: "Hallo {name}"
+// result.confidence: 0.95
+```
+
+#### 12b. extract-strings/autoTranslate.ts (NEW)
+Auto-translation orchestration for multilingual projects.
+
+**Key Function**: `autoTranslate(options: AutoTranslateOptions)`
+
+**Features**:
+- Translates new extraction keys to multiple target languages
+- Preserves existing translations (only translates new keys)
+- Handles nested key structures with dot notation
+- Creates translation files if they don't exist
+- Creates backups before modifying existing files
+- Graceful error handling (continues even if some translations fail)
+
+**Process**:
+1. Load source translation file (e.g., `en.json`)
+2. For each target language (e.g., `['de', 'fr', 'nl']`):
+   - Load or create target translation file
+   - For each new key:
+     - Skip if translation already exists
+     - Call AI client to translate source text
+     - Set translated value with nested structure
+   - Write updated translation file
+3. Report statistics and errors
+
+**Example**:
+```typescript
+const result = await autoTranslate({
+  sourceFile: '/locales/en.json',
+  targetLanguages: ['de', 'fr'],
+  aiClient,
+  sourceLanguage: 'en',
+  newKeys: new Map([
+    ['greeting', 'Hello'],
+    ['common.submit', 'Submit'],
+  ]),
+  backup: true,
+  verbose: true,
+})
+
+// Creates/updates:
+// - /locales/de.json with German translations
+// - /locales/fr.json with French translations
+```
+
+**Language Code Mapping**:
+Built-in language names for better translation quality:
+- `en` → English, `de` → German, `fr` → French
+- `es` → Spanish, `it` → Italian, `nl` → Dutch
+- `pt` → Portuguese, `ru` → Russian, `ja` → Japanese
+- `zh` → Chinese, `ko` → Korean, `ar` → Arabic, `hi` → Hindi
+
+**Integration with Orchestrator**:
+Auto-translation runs as optional Step 6 in the extraction pipeline when:
+- `extract.autoTranslate` is `true`
+- `extract.languages` array is not empty
+- AI client is available and configured
 
 ### CLI Integration
 
@@ -763,7 +833,7 @@ When adding new config options:
 ## Release Checklist
 
 Before releasing a new version:
-- [ ] All tests pass (`yarn test`) - **154/154 tests must pass**
+- [ ] All tests pass (`yarn test`) - **176/176 tests must pass**
 - [ ] Linter passes (`yarn lint`)
 - [ ] README.md updated with new features/changes
 - [ ] CLAUDE.md updated with technical details
@@ -788,7 +858,7 @@ Before releasing a new version:
 # Development
 yarn install              # Install dependencies
 yarn build                # Build TypeScript
-yarn test                 # Run tests (154 tests)
+yarn test                 # Run tests (176 tests)
 yarn lint                 # Lint code
 
 # Release (manual)
@@ -825,7 +895,7 @@ When starting work, review these files first:
 
 ## Tips for AI Assistants
 
-1. **Test-driven approach**: Always check/add tests when modifying core logic. **All 154 tests must pass.**
+1. **Test-driven approach**: Always check/add tests when modifying core logic. **All 176 tests must pass.**
 2. **Preserve backwards compatibility**: Existing CLI behavior should not break
 3. **Pattern precision**: Be careful with regex patterns - test thoroughly
 4. **Documentation updates**: Keep README.md and CLAUDE.md in sync with code changes

@@ -5,6 +5,7 @@ import { detectI18nPatterns } from './i18nPatternDetector'
 import { detectRawStrings } from './rawStringDetector'
 import { generateKeys } from './keyGenerator'
 import { replaceStringsInJsFile, replaceStringsInVueFile, updateTranslationFile } from './codeReplacer'
+import { autoTranslate } from './autoTranslate'
 import type { ExtractResult, RawStringLocation } from './types'
 
 export interface ExtractOptions {
@@ -105,7 +106,8 @@ export async function runExtraction(options: ExtractOptions): Promise<ExtractRes
 
   // Step 2: Find source files
   if (verbose) {
-    console.log('\n[2/5] Scanning for source files...')
+    const totalSteps = (extractConfig.autoTranslate && extractConfig.languages?.length) ? 6 : 5
+    console.log(`\n[2/${totalSteps}] Scanning for source files...`)
   }
 
   const files = await glob(filePattern, {
@@ -121,7 +123,8 @@ export async function runExtraction(options: ExtractOptions): Promise<ExtractRes
 
   // Step 3: Detect raw strings
   if (verbose) {
-    console.log('\n[3/5] Detecting raw translatable strings...')
+    const totalSteps = (extractConfig.autoTranslate && extractConfig.languages?.length) ? 6 : 5
+    console.log(`\n[3/${totalSteps}] Detecting raw translatable strings...`)
   }
 
   const rawStrings = await detectRawStrings(files, extractConfig)
@@ -143,7 +146,8 @@ export async function runExtraction(options: ExtractOptions): Promise<ExtractRes
 
   // Step 4: Generate translation keys
   if (verbose) {
-    console.log('\n[4/5] Generating translation keys...')
+    const totalSteps = (extractConfig.autoTranslate && extractConfig.languages?.length) ? 6 : 5
+    console.log(`\n[4/${totalSteps}] Generating translation keys...`)
   }
 
   let keyMap: Map<string, string>
@@ -164,7 +168,8 @@ export async function runExtraction(options: ExtractOptions): Promise<ExtractRes
 
   // Step 5: Replace strings and update translations
   if (verbose) {
-    console.log('\n[5/5] Replacing strings in files...')
+    const totalSteps = (extractConfig.autoTranslate && extractConfig.languages?.length) ? 6 : 5
+    console.log(`\n[5/${totalSteps}] Replacing strings in files...`)
   }
 
   const filesModified: string[] = []
@@ -217,6 +222,49 @@ export async function runExtraction(options: ExtractOptions): Promise<ExtractRes
 
     if (verbose) {
       console.log(`\nUpdated translation file: ${translationFile}`)
+    }
+
+    // Step 6: Auto-translate to other languages (if enabled and AI available)
+    if (extractConfig.autoTranslate && extractConfig.languages && extractConfig.languages.length > 0) {
+      const aiClient = aiClientInstance || createAIClient(config.ai || {})
+
+      if (aiClient) {
+        if (verbose) {
+          console.log(`\n[6/6] Auto-translating to ${extractConfig.languages.length} languages...`)
+        }
+
+        try {
+          const autoTranslateResult = await autoTranslate({
+            sourceFile: translationFile,
+            targetLanguages: extractConfig.languages,
+            aiClient,
+            sourceLanguage: extractConfig.targetLanguage || 'en',
+            newKeys: keyMap,
+            backup: config.cleanup?.backup !== false,
+            verbose,
+          })
+
+          if (verbose) {
+            console.log(`\nAuto-translation summary:`)
+            console.log(`  Languages processed: ${autoTranslateResult.translatedLanguages.join(', ')}`)
+            for (const [lang, count] of Object.entries(autoTranslateResult.translationsPerLanguage)) {
+              console.log(`    ${lang}: ${count} keys translated`)
+            }
+            if (autoTranslateResult.errors.length > 0) {
+              console.log(`  Errors: ${autoTranslateResult.errors.length}`)
+              for (const { language, error } of autoTranslateResult.errors) {
+                console.error(`    ${language}: ${error}`)
+              }
+            }
+          }
+        }
+        catch (error) {
+          console.error(`Auto-translation failed: ${(error as Error).message}`)
+        }
+      }
+      else {
+        console.warn('Auto-translation is enabled but AI is not configured or disabled')
+      }
     }
   }
   else {

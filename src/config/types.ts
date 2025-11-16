@@ -68,6 +68,19 @@ export interface ExtractConfig {
    * @default false
    */
   interactive?: boolean
+
+  /**
+   * Enable automatic translation to other languages (requires AI enabled)
+   * @default false
+   */
+  autoTranslate?: boolean
+
+  /**
+   * Target languages for auto-translation (e.g., ['de', 'fr', 'nl'])
+   * Only used when autoTranslate is enabled
+   * @default []
+   */
+  languages?: string[]
 }
 
 export interface AIConfig {
