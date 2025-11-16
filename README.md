@@ -4,206 +4,175 @@
 [![License](https://img.shields.io/npm/l/vue-translations-cleanup.svg)](https://github.com/yourusername/vue-translations-cleanup/blob/main/LICENSE)
 [![Vue 3](https://img.shields.io/badge/Vue-3.x-brightgreen?logo=vue.js)](https://vuejs.org/)
 [![Nuxt 3/4](https://img.shields.io/badge/Nuxt-3%20%7C%204-00DC82?logo=nuxt.js)](https://nuxt.com/)
-[![vue-i18n](https://img.shields.io/badge/vue--i18n-supported-brightgreen)](https://vue-i18n.intlify.dev/)
-[![@nuxtjs/i18n](https://img.shields.io/badge/@nuxtjs/i18n-supported-00DC82)](https://i18n.nuxtjs.org/)
 
-A powerful dual-purpose tool for Vue.js and Nuxt i18n projects that helps you:
-1. **Clean up** unused translation keys (remove what's unused)
-2. **Extract** raw strings and convert them to i18n automatically
+A powerful CLI tool for Vue.js and Nuxt i18n projects:
+- 🧹 **Cleanup Mode**: Remove unused translation keys
+- 🔍 **Extract Mode**: Convert raw strings to i18n automatically
+- 🤖 **AI-Powered**: Smart key generation and auto-translation (optional)
 
-Whether you're maintaining a mature i18n setup or migrating a legacy codebase, this tool has you covered.
+## Quick Start
+
+```bash
+# Install
+npm install -D vue-translations-cleanup
+
+# Remove unused translations
+npx vue-translations-cleanup
+
+# Extract raw strings to i18n
+npx vue-translations-cleanup --extract
+```
 
 ## Features
 
-### Cleanup Mode (Default)
+### Cleanup Mode
+✅ Auto-detects Vue 3, Nuxt 3/4 projects
+✅ Removes unused translation keys
+✅ Supports nested keys and pruning
+✅ Dry-run mode and automatic backups
+✅ Directory mode for bulk cleanup
 
-- **Auto-detection and flexible targets:**
-  - Runs with no flags and attempts to auto-detect your source and translations paths (supports Nuxt 3/4 with @nuxtjs/i18n, Vite + @intlify/unplugin-vue-i18n, and common folder conventions).
-  - Accepts either a single JSON file or an entire directory of JSON files for bulk cleanup.
+### Extract Mode (NEW in v2.0)
+✅ Finds hardcoded translatable strings
+✅ Generates semantic translation keys
+✅ Replaces strings with i18n calls
+✅ Auto-injects imports when needed
+✅ AI-powered features (optional):
+  - Context-aware key naming
+  - Auto-translate to multiple languages
+  - Local (Ollama) or cloud (Claude, GPT) LLMs
 
-- **Advanced Translation Detection:**
-  - Detects `t()`, `$t()`, `rt()`, `$rt()`, `tc()`, `$tc()` including Composition API (e.g. `useI18n().t()`), multi-line strings, and different quotes (single, double, template literals).
-  - Supports bracket notation and normalizes it to dot notation.
-  - Detects Vue template usages: `v-t` directive (string and object forms) and `<i18n-t>` component `keypath`/`path` (static and bound forms).
+## Examples
 
-- **Safe & Reliable Updates:**
-  - Automatically creates backup files before making changes (disable with `--no-backup`).
-  - Dry-run mode to preview changes without writing.
-  - Automatically prunes empty objects after deletions, including root-level empties.
-
-### Extract Mode (NEW!)
-
-- **Smart String Detection:**
-  - Finds raw translatable strings in Vue templates and script sections
-  - Uses heuristics to filter out URLs, hex colors, CSS classes, emails, etc.
-  - Confidence levels (high/medium/low) to avoid false positives
-
-- **AI-Powered Features (Optional):**
-  - **Semantic key generation**: Context-aware translation key naming
-  - **Auto-translation**: Automatically translate extracted keys to multiple languages
-  - Local LLM support: Ollama, LM Studio, LocalAI
-  - Cloud LLM support: Anthropic Claude, OpenAI GPT
-  - Falls back to smart heuristic-based key generation when AI unavailable
-  - Preserves placeholders and formatting in translations
-
-- **Automatic Code Updates:**
-  - Replaces raw strings with i18n function calls
-  - Auto-injects imports (`const { t } = useI18n()`) when needed
-  - Respects your existing i18n patterns (auto-detected)
-  - Updates translation JSON files with new keys
-
-- **Config File Support:**
-  - TypeScript, ES Module, or JSON config files
-  - Customize key format (snake_case, camelCase, kebab-case, dot.case)
-  - Define custom i18n patterns for non-standard setups
-  - Control which HTML attributes to extract
-
-## Compatibility
-
-- **Vue 3**: Fully supported with [vue-i18n](https://vue-i18n.intlify.dev/) (Intlify)
-- **Nuxt 3/4**: Fully supported with [@nuxtjs/i18n](https://i18n.nuxtjs.org/)
-- May also work with other i18n libraries that expose compatible APIs (e.g., `t`, `$t`, `rt`, `tc`) and similar usage patterns (including Composition API). However, only vue-i18n and @nuxtjs/i18n are explicitly supported and tested.
-
-## Installation
+### Remove Unused Keys
 
 ```bash
-# Using pnpm
-pnpm add -D vue-translations-cleanup
-
-# Using npm
-npm install --save-dev vue-translations-cleanup
-
-# Using yarn
-yarn add -D vue-translations-cleanup
-```
-
-## Usage
-
-### Cleanup Mode (Remove Unused Keys)
-
-Run from the command line:
-
-```bash
-# Easiest: let the tool auto-detect paths
+# Auto-detect paths (Nuxt, Vue + Vite)
 npx vue-translations-cleanup
 
-# See what was detected (verbose)
-npx vue-translations-cleanup --verbose
+# Specify paths manually
+npx vue-translations-cleanup -t ./locales/en.json -s ./src
 
-# Manual single-file mode
-npx vue-translations-cleanup -t ./src/translations/en.json -s ./src
-
-# Directory-wide cleanup
-npx vue-translations-cleanup -t ./src/locales -s ./src
-
-# Preview only (no writes)
+# Preview changes
 npx vue-translations-cleanup --dry-run --verbose
-
-# Skip backup creation
-npx vue-translations-cleanup --no-backup
 ```
 
-### Extract Mode (Convert Raw Strings to i18n)
-
-```bash
-# Extract with auto-detection
-npx vue-translations-cleanup --extract
-
-# Extract with config file
-npx vue-translations-cleanup --extract --config ./vue-translations-cleanup.config.ts
-
-# Preview extraction changes
-npx vue-translations-cleanup --extract --dry-run --verbose
-
-# Extract with manual paths
-npx vue-translations-cleanup --extract -t ./locales/en.json -s ./src
-```
-
-**Important:** The extraction tool requires at least one existing i18n reference in your codebase to detect how your project uses i18n. If you're starting from scratch with i18n, add at least one reference first:
-
-- **Vue 3 Composition API**: Add `const { t } = useI18n()` and use `t('key')` somewhere
-- **Vue 3 Options API / Nuxt**: Use `{{ $t('key') }}` in a template
-- **Custom setup**: Define your pattern in the config file (see below)
-
-The tool scans your codebase to detect the i18n pattern you're using, then applies that same pattern when converting raw strings.
-
-### Config File (Optional)
-
-Create a config file for advanced customization:
-
-**TypeScript** (`vue-translations-cleanup.config.ts`):
-```typescript
-import type { ToolConfig } from 'vue-translations-cleanup'
-
-const config: ToolConfig = {
-  // Paths (optional - will auto-detect if omitted)
-  translationFile: './locales/en.json',
-  srcPath: './src',
-
-  // Extraction settings
-  extract: {
-    targetLanguage: 'en',
-    confidence: 'high',           // 'high' | 'medium' | 'low'
-    keyFormat: 'snake_case',      // 'snake_case' | 'camelCase' | 'kebab-case' | 'dot.case'
-    maxKeyLength: 50,
-    includeAttributes: ['placeholder', 'title', 'alt', 'label', 'aria-label'],
-    excludePatterns: ['**/node_modules/**', '**/*.spec.ts'],
-
-    // Custom i18n patterns (for non-standard setups)
-    i18nPatterns: [
-      {
-        pattern: /const\s*{\s*i18n:\s*{\s*t\s*}\s*}\s*=\s*injectContext\(\)/,
-        functionName: 't',
-        importTemplate: 'const { i18n: { t } } = injectContext()',
-      },
-    ],
-  },
-
-  // AI settings (optional)
-  ai: {
-    enabled: true,
-    provider: 'ollama',           // 'ollama' | 'anthropic' | 'openai' | 'lmstudio' | 'localai'
-    model: 'codellama',
-    baseUrl: 'http://localhost:11434',
-    timeout: 30000,
-
-    // Auto-translate extracted keys to multiple languages
-    autoTranslate: true,
-    languages: ['de', 'fr', 'nl'], // Target languages for auto-translation
-  },
-
-  // Cleanup settings
-  cleanup: {
-    backup: true,
-    pattern: '**/*.{vue,js,ts}',
-  },
-}
-
-export default config
-```
-
-**JSON** (`vue-translations-cleanup.config.json`):
+**Before:**
 ```json
 {
-  "extract": {
-    "targetLanguage": "en",
-    "confidence": "high",
-    "keyFormat": "snake_case",
-    "maxKeyLength": 50
-  },
-  "ai": {
-    "enabled": true,
-    "provider": "ollama",
-    "model": "codellama"
+  "greeting": "Hello",
+  "unused_key": "Never used",
+  "common": {
+    "submit": "Submit"
   }
 }
 ```
 
-See [vue-translations-cleanup.config.example.ts](./vue-translations-cleanup.config.example.ts) for a complete example with all options.
-
-### CLI Options
-
+**After:**
+```json
+{
+  "greeting": "Hello",
+  "common": {
+    "submit": "Submit"
+  }
+}
 ```
+
+### Extract Raw Strings
+
+```bash
+# Extract with auto-detected settings
+npx vue-translations-cleanup --extract
+
+# With config file for advanced features
+npx vue-translations-cleanup --extract --config ./my-config.ts
+```
+
+**Before:**
+```vue
+<template>
+  <button>Submit</button>
+  <input placeholder="Enter your name" />
+</template>
+```
+
+**After:**
+```vue
+<template>
+  <button>{{ t('common.submit') }}</button>
+  <input :placeholder="t('form.name_placeholder')" />
+</template>
+
+<script setup>
+const { t } = useI18n()
+</script>
+```
+
+Translation file updated:
+```json
+{
+  "common": {
+    "submit": "Submit"
+  },
+  "form": {
+    "name_placeholder": "Enter your name"
+  }
+}
+```
+
+## AI-Powered Auto-Translation
+
+Automatically translate extracted keys to multiple languages:
+
+```typescript
+// vue-translations-cleanup.config.ts
+export default {
+  ai: {
+    enabled: true,
+    provider: 'ollama',  // or 'anthropic', 'openai'
+    model: 'codellama',
+    languages: ['de', 'fr', 'es']  // Auto-translate to these
+  }
+}
+```
+
+```bash
+npx vue-translations-cleanup --extract
+```
+
+**Result:**
+```
+locales/en.json: { "greeting": "Hello" }
+locales/de.json: { "greeting": "Hallo" }      ← AI translated
+locales/fr.json: { "greeting": "Bonjour" }    ← AI translated
+locales/es.json: { "greeting": "Hola" }       ← AI translated
+```
+
+## Configuration
+
+Create `vue-translations-cleanup.config.ts` for advanced features:
+
+```typescript
+export default {
+  extract: {
+    targetLanguage: 'en',
+    confidence: 'high',
+    keyFormat: 'snake_case',  // or 'camelCase', 'kebab-case', 'dot.case'
+  },
+  ai: {
+    enabled: true,
+    provider: 'ollama',
+    model: 'codellama',
+    languages: ['de', 'fr'],  // Auto-translate
+  },
+}
+```
+
+See [full configuration reference](https://butaminas.github.io/vue-translations-cleanup/guide/config-file) in the documentation.
+
+## CLI Options
+
+```bash
 Options:
   -t, --translation-file <path>  Translation file or directory
   -s, --src-path <path>          Source files path
@@ -212,212 +181,44 @@ Options:
   -n, --dry-run                  Preview changes without writing
   --no-backup                    Skip backup creation
   -v, --verbose                  Show detailed output
-  -p, --pattern <glob>           Custom file pattern
+  -h, --help                     Display help
 ```
 
-### Programmatic Usage
+## Compatibility
 
-**Cleanup:**
-```typescript
-import { cleanupTranslations } from 'vue-translations-cleanup'
+| Framework | Support | Version |
+|-----------|---------|---------|
+| Vue 3 | ✅ Full | 3.x |
+| Nuxt 3 | ✅ Full | 3.x |
+| Nuxt 4 | ✅ Full | 4.x |
+| vue-i18n | ✅ Full | Intlify |
+| @nuxtjs/i18n | ✅ Full | Latest |
 
-const result = await cleanupTranslations({
-  translationFile: './src/translations/en.json',
-  srcPath: './src',
-  backup: true,    // default: true
-  dryRun: false,   // default: false
-  verbose: true,   // default: false
-})
+Auto-detects:
+- Nuxt 3/4 with `@nuxtjs/i18n`
+- Vue 3 + Vite with `@intlify/unplugin-vue-i18n`
+- Common project structures
 
-console.log('Unused translations:', result.unusedTranslations)
-// result includes: totalKeys, usedKeys, unusedKeys, unusedTranslations, usedKeysSet, cleaned
-```
+## Documentation
 
-**Extraction:**
-```typescript
-import { runExtraction } from 'vue-translations-cleanup/extract-strings'
-import { validateConfig } from 'vue-translations-cleanup/config'
+📖 **[Full Documentation](https://butaminas.github.io/vue-translations-cleanup/)**
 
-const config = validateConfig({
-  extract: {
-    targetLanguage: 'en',
-    confidence: 'high',
-    keyFormat: 'snake_case',
-  },
-})
-
-const result = await runExtraction({
-  translationFile: './locales/en.json',
-  srcPath: './src',
-  config,
-  dryRun: false,
-  verbose: true,
-})
-
-console.log(`Extracted ${result.totalExtracted} strings from ${result.filesModified.length} files`)
-```
-
-## How Extraction Works
-
-When you run `--extract`, the tool follows this pipeline:
-
-1. **Detect i18n patterns** - Scans your codebase to find existing i18n usage (e.g., `const { t } = useI18n()`)
-2. **Find raw strings** - Uses AST parsing to find translatable strings in templates and scripts
-3. **Generate keys** - Creates semantic translation keys based on context and file paths
-4. **Replace code** - Updates your source files with i18n function calls
-5. **Update translations** - Adds new keys to your translation JSON file
-
-### Example Transformation
-
-**Before:**
-```vue
-<template>
-  <div>
-    <h1>Welcome to our app</h1>
-    <button>Click here to continue</button>
-    <input placeholder="Enter your email" />
-  </div>
-</template>
-```
-
-**After:**
-```vue
-<template>
-  <div>
-    <h1>{{ t('welcome_component.welcome_to_our_app') }}</h1>
-    <button>{{ t('welcome_component.click_here_to_continue') }}</button>
-    <input :placeholder="t('welcome_component.placeholder')" />
-  </div>
-</template>
-
-<script setup>
-const { t } = useI18n()
-</script>
-```
-
-**Translation file:**
-```json
-{
-  "welcome_component": {
-    "welcome_to_our_app": "Welcome to our app",
-    "click_here_to_continue": "Click here to continue",
-    "placeholder": "Enter your email"
-  }
-}
-```
-
-## AI-Powered Key Generation
-
-For even better translation key naming, enable AI support:
-
-### Using Ollama (Local, Free)
-
-1. Install Ollama: https://ollama.ai
-2. Pull a model: `ollama pull codellama`
-3. Enable in config:
-
-```typescript
-{
-  ai: {
-    enabled: true,
-    provider: 'ollama',
-    model: 'codellama',
-  }
-}
-```
-
-### Using Cloud Providers
-
-**Anthropic Claude:**
-```typescript
-{
-  ai: {
-    enabled: true,
-    provider: 'anthropic',
-    model: 'claude-3-5-sonnet-20241022',
-    apiKey: process.env.ANTHROPIC_API_KEY,
-  }
-}
-```
-
-**OpenAI GPT:**
-```typescript
-{
-  ai: {
-    enabled: true,
-    provider: 'openai',
-    model: 'gpt-4',
-    apiKey: process.env.OPENAI_API_KEY,
-  }
-}
-```
-
-The AI analyzes the context (file path, component name, nearby code) to suggest better key names. If AI fails, it gracefully falls back to heuristic-based generation.
-
-### Auto-Translation to Multiple Languages
-
-Automatically translate extracted keys to multiple languages using AI:
-
-```typescript
-{
-  ai: {
-    enabled: true,  // REQUIRED
-    provider: 'ollama',
-    model: 'codellama',
-
-    // Auto-translation config
-    autoTranslate: true,
-    languages: ['de', 'fr', 'nl'],
-  }
-}
-```
-
-**Behavior:**
-- Only **new keys** are translated (existing translations preserved)
-- Creates language files if they don't exist
-- Maintains placeholders and formatting
-
-```bash
-npx vue-translations-cleanup --extract
-
-# Creates/updates:
-# locales/en.json: { "greeting": "Hello" }
-# locales/de.json: { "greeting": "Hallo" }     ← AI translated
-# locales/fr.json: { "greeting": "Bonjour" }   ← AI translated
-```
-
-## Notes & Limitations
-
-### Cleanup Mode
-- **JSON-only scope:** This tool currently edits JSON translation files only. You can pass a single JSON file or a directory containing multiple JSON files. It does not modify:
-  - Vue SFC `<i18n>` blocks
-  - TS/JS translation modules
-  - Inline configuration (e.g., messages inside `createI18n`)
-- **Dynamic/computed keys** (e.g., `t(variable)` or `:keypath="\`labels.\${type}.name\`"`) are not considered "used" to avoid false positives.
-
-### Extract Mode
-- **Requires i18n pattern detection:** The tool must detect at least one existing i18n reference in your code to understand how your project uses i18n (e.g., `const { t } = useI18n()` or `{{ $t('key') }}`). If starting fresh, add one reference first.
-- **Requires single file:** Extract mode requires a specific translation file (not a directory)
-- **Smart heuristics:** The tool uses heuristics to avoid extracting non-translatable strings, but review the changes in dry-run mode first
-- **Backup recommended:** Always creates backups (unless `--no-backup` is used) - keep them until you verify the changes
-
-## Behavior & Defaults
-
-- `-t/--translation-file` and `-s/--src-path` are optional. If omitted, the tool attempts to auto-detect both paths.
-- `-t` may be a single JSON file or a directory (cleanup mode only; extract mode requires a single file).
-- Backups are created by default before writing changes; disable with `--no-backup`.
-- Use `--dry-run` to preview changes without writing.
-- Use `--verbose` for detailed logs.
-- Source scanning covers `.{vue,ts,tsx,js,jsx,mjs,cjs}` files by default.
+- [Getting Started](https://butaminas.github.io/vue-translations-cleanup/guide/getting-started)
+- [Cleanup Mode Guide](https://butaminas.github.io/vue-translations-cleanup/guide/cleanup-mode)
+- [Extract Mode Guide](https://butaminas.github.io/vue-translations-cleanup/guide/extract-mode)
+- [AI Features](https://butaminas.github.io/vue-translations-cleanup/guide/ai-features)
+- [Configuration](https://butaminas.github.io/vue-translations-cleanup/guide/config-file)
+- [API Reference](https://butaminas.github.io/vue-translations-cleanup/api/cleanup)
+- [Examples](https://butaminas.github.io/vue-translations-cleanup/examples/nuxt-3)
 
 ## Contributing
 
-Contributions are welcome! If you have improvements or find issues, feel free to submit a Pull Request.
+Contributions are welcome! Please see [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
 
 ## License
 
-MIT
+MIT © [Mindaugas Kristutis](https://github.com/yourusername)
 
----
+## Changelog
 
-Happy translating! 🌍
+See [CHANGELOG.md](./CHANGELOG.md) for version history.
