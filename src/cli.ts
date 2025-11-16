@@ -8,8 +8,9 @@ import { detectConfig } from './cli-detection'
 import { c, separator, symbols } from './cli-style'
 import { cleanupTranslations } from './translations-cleanup'
 import { loadConfig } from './config/loader'
-import { validateConfig } from './config/validator'
+import { mergeWithDefaults, validateConfig } from './config/validator'
 import { runExtraction } from './extract-strings/orchestrator'
+import type { ToolConfig } from './config/types'
 
 function readPkgVersion(): string {
   try {
@@ -44,7 +45,7 @@ const options = program.opts()
 
 async function run() {
   // Load config file if provided
-  let config = null
+  let config: ToolConfig | null = null
   if (options.config) {
     const configPath = path.resolve(process.cwd(), options.config)
     config = await loadConfig(path.dirname(configPath), configPath)
@@ -55,7 +56,8 @@ async function run() {
     }
 
     // Validate and merge with defaults
-    config = validateConfig(config)
+    validateConfig(config)
+    config = mergeWithDefaults(config)
 
     if (options.verbose) {
       console.log(c.info(`${symbols.info} Loaded config from: ${options.config}`))
@@ -66,7 +68,8 @@ async function run() {
     config = await loadConfig(process.cwd())
 
     if (config) {
-      config = validateConfig(config)
+      validateConfig(config)
+      config = mergeWithDefaults(config)
 
       if (options.verbose) {
         console.log(c.info(`${symbols.info} Auto-loaded config file`))
@@ -119,7 +122,7 @@ async function run() {
 
     // Ensure config is loaded (use defaults if not)
     if (!config) {
-      config = validateConfig({})
+      config = mergeWithDefaults({})
     }
 
     console.log(c.strong('\n=== String Extraction Mode ===\n'))
@@ -128,7 +131,7 @@ async function run() {
       await runExtraction({
         translationFile: absTranslations,
         srcPath: absSrc,
-        config,
+        config: config!, // config is guaranteed to be non-null here due to check above
         dryRun: options.dryRun,
         verbose: options.verbose,
       })

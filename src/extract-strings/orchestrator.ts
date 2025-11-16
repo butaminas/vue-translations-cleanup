@@ -226,9 +226,9 @@ export async function runExtraction(options: ExtractOptions): Promise<ExtractRes
 
     // Step 6: Auto-translate to other languages (if enabled and AI available)
     if (extractConfig.autoTranslate && extractConfig.languages && extractConfig.languages.length > 0) {
-      const aiClient = aiClientInstance || createAIClient(config.ai || {})
+      const aiClientForTranslation = aiClient || createAIClient(config.ai || {})
 
-      if (aiClient) {
+      if (aiClientForTranslation) {
         if (verbose) {
           console.log(`\n[6/6] Auto-translating to ${extractConfig.languages.length} languages...`)
         }
@@ -237,7 +237,7 @@ export async function runExtraction(options: ExtractOptions): Promise<ExtractRes
           const autoTranslateResult = await autoTranslate({
             sourceFile: translationFile,
             targetLanguages: extractConfig.languages,
-            aiClient,
+            aiClient: aiClientForTranslation,
             sourceLanguage: extractConfig.targetLanguage || 'en',
             newKeys: keyMap,
             backup: config.cleanup?.backup !== false,
