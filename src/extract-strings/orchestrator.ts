@@ -106,7 +106,7 @@ export async function runExtraction(options: ExtractOptions): Promise<ExtractRes
 
   // Step 2: Find source files
   if (verbose) {
-    const totalSteps = (config.ai?.autoTranslate && config.ai?.languages?.length) ? 6 : 5
+    const totalSteps = (config.ai?.languages?.length) ? 6 : 5
     console.log(`\n[2/${totalSteps}] Scanning for source files...`)
   }
 
@@ -123,7 +123,7 @@ export async function runExtraction(options: ExtractOptions): Promise<ExtractRes
 
   // Step 3: Detect raw strings
   if (verbose) {
-    const totalSteps = (config.ai?.autoTranslate && config.ai?.languages?.length) ? 6 : 5
+    const totalSteps = (config.ai?.languages?.length) ? 6 : 5
     console.log(`\n[3/${totalSteps}] Detecting raw translatable strings...`)
   }
 
@@ -146,7 +146,7 @@ export async function runExtraction(options: ExtractOptions): Promise<ExtractRes
 
   // Step 4: Generate translation keys
   if (verbose) {
-    const totalSteps = (config.ai?.autoTranslate && config.ai?.languages?.length) ? 6 : 5
+    const totalSteps = (config.ai?.languages?.length) ? 6 : 5
     console.log(`\n[4/${totalSteps}] Generating translation keys...`)
   }
 
@@ -168,7 +168,7 @@ export async function runExtraction(options: ExtractOptions): Promise<ExtractRes
 
   // Step 5: Replace strings and update translations
   if (verbose) {
-    const totalSteps = (config.ai?.autoTranslate && config.ai?.languages?.length) ? 6 : 5
+    const totalSteps = (config.ai?.languages?.length) ? 6 : 5
     console.log(`\n[5/${totalSteps}] Replacing strings in files...`)
   }
 
@@ -224,8 +224,8 @@ export async function runExtraction(options: ExtractOptions): Promise<ExtractRes
       console.log(`\nUpdated translation file: ${translationFile}`)
     }
 
-    // Step 6: Auto-translate to other languages (if enabled and AI available)
-    if (config.ai?.autoTranslate && config.ai?.languages && config.ai.languages.length > 0) {
+    // Step 6: Auto-translate to other languages (if languages configured)
+    if (config.ai?.languages && config.ai.languages.length > 0) {
       const aiClientForTranslation = aiClient || createAIClient(config.ai || {})
 
       if (aiClientForTranslation) {
@@ -263,7 +263,7 @@ export async function runExtraction(options: ExtractOptions): Promise<ExtractRes
         }
       }
       else {
-        console.warn('Auto-translation is enabled but AI is not configured or disabled')
+        console.warn('Languages configured but AI is not enabled')
       }
     }
   }

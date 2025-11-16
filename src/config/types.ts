@@ -112,16 +112,10 @@ export interface AIConfig {
   timeout?: number
 
   /**
-   * Enable automatic translation to multiple languages
+   * Auto-translate extracted keys to multiple languages (e.g., ['de', 'fr', 'nl'])
    * Requires AI to be enabled (enabled: true)
-   * @default false
-   */
-  autoTranslate?: boolean
-
-  /**
-   * Target languages for auto-translation (e.g., ['de', 'fr', 'nl'])
-   * Only used when autoTranslate is enabled
    * The source language is determined by extract.targetLanguage
+   * Leave empty or undefined to skip auto-translation
    * @default []
    */
   languages?: string[]

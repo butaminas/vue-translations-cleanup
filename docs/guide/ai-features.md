@@ -222,8 +222,7 @@ Automatically translate extracted keys to multiple languages.
     model: 'claude-3-5-sonnet-20241022',
     apiKey: process.env.ANTHROPIC_API_KEY,
 
-    // Auto-translation config
-    autoTranslate: true,
+    // Auto-translation: just add target languages
     languages: ['de', 'fr', 'es', 'nl']
   },
   extract: {
@@ -346,8 +345,7 @@ export default {
     apiKey: process.env.ANTHROPIC_API_KEY,
     timeout: 30000,
 
-    // Auto-translation
-    autoTranslate: true,
+    // Auto-translation: just add target languages
     languages: ['de', 'fr', 'es', 'it', 'nl']
   }
 }

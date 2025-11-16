@@ -119,10 +119,7 @@ ai: {
     'X-Custom-Header': 'value',
   },
 
-  // Auto-translate to multiple languages
-  autoTranslate: true,
-
-  // Target languages
+  // Auto-translate to multiple languages (leave empty to skip)
   languages: ['de', 'fr', 'es'],
 }
 ```

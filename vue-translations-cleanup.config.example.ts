@@ -104,13 +104,10 @@ const config: ToolConfig = {
     //   'X-Custom-Header': 'value',
     // },
 
-    // Auto-translate extracted strings to multiple languages
+    // Auto-translate extracted strings to multiple languages (e.g., ['de', 'fr', 'nl'])
     // Requires AI to be enabled (enabled: true)
-    autoTranslate: false,
-
-    // Target languages for auto-translation (e.g., ['de', 'fr', 'nl'])
     // The source language is determined by extract.targetLanguage (default: 'en')
-    // Only used when autoTranslate is enabled
+    // Leave empty to skip auto-translation
     languages: [],
   },
 
