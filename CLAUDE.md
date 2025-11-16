@@ -285,6 +285,9 @@ Coordinates the complete extraction pipeline.
 
 **Pipeline Steps**:
 1. Detect existing i18n usage patterns in codebase
+   - **Validation**: Requires at least one i18n pattern to be detected
+   - **Error**: Returns empty result with helpful error message if no patterns found
+   - **Supported patterns**: `useI18n()`, `$t()`, custom patterns from config
 2. Find and scan source files matching pattern
 3. Detect raw translatable strings (with heuristics)
 4. Generate translation keys (heuristic or AI-powered)
@@ -295,6 +298,7 @@ Coordinates the complete extraction pipeline.
 - Statistics (files scanned, strings extracted, etc.)
 - Dry-run support
 - Error handling with graceful degradation
+- **Pattern validation**: Ensures at least one i18n reference exists before extraction
 
 #### 6. extract-strings/i18nPatternDetector.ts
 Auto-detects existing i18n usage patterns in the codebase.

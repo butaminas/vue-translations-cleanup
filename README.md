@@ -117,6 +117,14 @@ npx vue-translations-cleanup --extract --dry-run --verbose
 npx vue-translations-cleanup --extract -t ./locales/en.json -s ./src
 ```
 
+**Important:** The extraction tool requires at least one existing i18n reference in your codebase to detect how your project uses i18n. If you're starting from scratch with i18n, add at least one reference first:
+
+- **Vue 3 Composition API**: Add `const { t } = useI18n()` and use `t('key')` somewhere
+- **Vue 3 Options API / Nuxt**: Use `{{ $t('key') }}` in a template
+- **Custom setup**: Define your pattern in the config file (see below)
+
+The tool scans your codebase to detect the i18n pattern you're using, then applies that same pattern when converting raw strings.
+
 ### Config File (Optional)
 
 Create a config file for advanced customization:
@@ -350,6 +358,7 @@ The AI analyzes the context (file path, component name, nearby code) to suggest 
 - **Dynamic/computed keys** (e.g., `t(variable)` or `:keypath="\`labels.\${type}.name\`"`) are not considered "used" to avoid false positives.
 
 ### Extract Mode
+- **Requires i18n pattern detection:** The tool must detect at least one existing i18n reference in your code to understand how your project uses i18n (e.g., `const { t } = useI18n()` or `{{ $t('key') }}`). If starting fresh, add one reference first.
 - **Requires single file:** Extract mode requires a specific translation file (not a directory)
 - **Smart heuristics:** The tool uses heuristics to avoid extracting non-translatable strings, but review the changes in dry-run mode first
 - **Backup recommended:** Always creates backups (unless `--no-backup` is used) - keep them until you verify the changes

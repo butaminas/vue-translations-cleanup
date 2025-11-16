@@ -68,6 +68,41 @@ export async function runExtraction(options: ExtractOptions): Promise<ExtractRes
     }
   }
 
+  // Validate that we found at least one i18n pattern
+  if (i18nResult.patterns.length === 0) {
+    console.error('\n❌ Error: No i18n usage patterns found in your codebase.')
+    console.error('\nThe extraction tool needs to detect at least one existing i18n reference')
+    console.error('to understand how your project uses i18n.')
+    console.error('\nPlease add at least one i18n reference to your code:')
+    console.error('\nFor Vue 3 with Composition API:')
+    console.error('  <script setup>')
+    console.error('  const { t } = useI18n()')
+    console.error('  const greeting = t(\'hello\')')
+    console.error('  </script>')
+    console.error('\nFor Vue 3 Options API / Nuxt:')
+    console.error('  <template>')
+    console.error('    <div>{{ $t(\'hello\') }}</div>')
+    console.error('  </template>')
+    console.error('\nFor custom patterns, you can define them in your config file:')
+    console.error('  extract: {')
+    console.error('    i18nPatterns: [')
+    console.error('      {')
+    console.error('        functionName: \'t\',')
+    console.error('        importStatement: \'const { t } = useCustomI18n()\',')
+    console.error('      }')
+    console.error('    ]')
+    console.error('  }')
+    console.error('\nAfter adding a reference, run the extraction tool again.')
+
+    return {
+      rawStrings: [],
+      generatedKeys: new Map(),
+      filesModified: [],
+      totalExtracted: 0,
+      duplicates: [],
+    }
+  }
+
   // Step 2: Find source files
   if (verbose) {
     console.log('\n[2/5] Scanning for source files...')
