@@ -1,6 +1,6 @@
 {
   "name": "vue-translations-cleanup",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "A tool to find and remove unused translation keys in Vue i18n projects",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
