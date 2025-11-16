@@ -4,28 +4,33 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { findConfigFile, loadConfig, loadConfigFile } from '@/config/loader'
 import type { ToolConfig } from '@/config/types'
 
-describe.sequential('config/loader', () => {
-  const fixturesDir = path.join(__dirname, 'fixtures')
+describe('config/loader', () => {
   let testDir: string
 
   beforeEach(() => {
-    // Clean up fixtures directory completely
-    if (fs.existsSync(fixturesDir)) {
-      fs.rmSync(fixturesDir, { recursive: true, force: true })
-    }
-
-    //Create unique test directory using timestamp and random number
-    const uniqueId = `${Date.now()}-${Math.random().toString(36).substring(7)}`
-    testDir = path.join(fixturesDir, `loader-test-${uniqueId}`)
-
-    // Create test directory
+    // Create a unique temporary directory using timestamp and random string
+    const uniqueId = `loader-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`
+    testDir = path.join(__dirname, 'tmp', uniqueId)
     fs.mkdirSync(testDir, { recursive: true })
   })
 
   afterEach(() => {
-    // Clean up test files
-    if (fs.existsSync(fixturesDir)) {
-      fs.rmSync(fixturesDir, { recursive: true, force: true })
+    // Clean up the temporary directory
+    if (fs.existsSync(testDir)) {
+      fs.rmSync(testDir, { recursive: true, force: true })
+    }
+    // Clean up parent tmp directory if empty
+    const tmpDir = path.join(__dirname, 'tmp')
+    if (fs.existsSync(tmpDir)) {
+      try {
+        const files = fs.readdirSync(tmpDir)
+        if (files.length === 0) {
+          fs.rmdirSync(tmpDir)
+        }
+      }
+      catch {
+        // Ignore errors
+      }
     }
   })
 

@@ -3,25 +3,33 @@ import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { detectI18nPatterns, getImportTemplate, shouldUseGlobalT } from '@/extract-strings/i18nPatternDetector'
 
-describe.sequential('i18nPatternDetector', () => {
-  const fixturesDir = path.join(__dirname, 'fixtures')
+describe('i18nPatternDetector', () => {
   let testDir: string
 
   beforeEach(() => {
-    // Clean up fixtures directory
-    if (fs.existsSync(fixturesDir)) {
-      fs.rmSync(fixturesDir, { recursive: true, force: true })
-    }
-
-    // Create test directory
-    const uniqueId = `${Date.now()}-${Math.random().toString(36).substring(7)}`
-    testDir = path.join(fixturesDir, `pattern-test-${uniqueId}`)
+    // Create a unique temporary directory using timestamp and random string
+    const uniqueId = `i18n-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`
+    testDir = path.join(__dirname, 'tmp', uniqueId)
     fs.mkdirSync(testDir, { recursive: true })
   })
 
   afterEach(() => {
-    if (fs.existsSync(fixturesDir)) {
-      fs.rmSync(fixturesDir, { recursive: true, force: true })
+    // Clean up the temporary directory
+    if (fs.existsSync(testDir)) {
+      fs.rmSync(testDir, { recursive: true, force: true })
+    }
+    // Clean up parent tmp directory if empty
+    const tmpDir = path.join(__dirname, 'tmp')
+    if (fs.existsSync(tmpDir)) {
+      try {
+        const files = fs.readdirSync(tmpDir)
+        if (files.length === 0) {
+          fs.rmdirSync(tmpDir)
+        }
+      }
+      catch {
+        // Ignore errors
+      }
     }
   })
 
