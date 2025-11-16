@@ -118,10 +118,55 @@ const { t } = useI18n()
 </script>
 ```
 
+## AI-Powered Auto-Translation (Optional)
+
+Extract strings and automatically translate to multiple languages using **local AI** (free & private):
+
+**Setup** (one-time):
+```bash
+# Install Ollama (local AI)
+curl https://ollama.ai/install.sh | sh
+
+# Pull a model
+ollama pull codellama
+```
+
+**Config** (`vue-translations-cleanup.config.ts`):
+```typescript
+export default {
+  ai: {
+    enabled: true,
+    provider: 'ollama',  // Runs locally, 100% private
+    model: 'codellama',
+    languages: ['de', 'fr', 'es', 'nl']  // Auto-translate to these
+  }
+}
+```
+
+**Run extraction**:
+```bash
+npx vue-translations-cleanup --extract
+```
+
+**Result** - Automatically creates translated files:
+```
+✓ locales/en.json: { "greeting": "Hello {name}" }
+✓ locales/de.json: { "greeting": "Hallo {name}" }     ← AI translated
+✓ locales/fr.json: { "greeting": "Bonjour {name}" }   ← AI translated
+✓ locales/es.json: { "greeting": "Hola {name}" }      ← AI translated
+✓ locales/nl.json: { "greeting": "Hallo {name}" }     ← AI translated
+```
+
+::: tip Privacy-Focused
+Ollama runs 100% locally on your machine. Your code and translations never leave your computer.
+Cloud options (Anthropic Claude, OpenAI GPT) also available for better translation quality.
+:::
+
 ## Why vue-translations-cleanup?
 
 - **Zero Configuration**: Auto-detects Nuxt and Vue projects
 - **Time Saver**: Automate tedious i18n cleanup and migration tasks
+- **Privacy-Focused AI**: Free local LLMs (Ollama) or cloud options
 - **Production Ready**: Used in production by multiple teams
 - **Well Tested**: 176 passing tests with comprehensive coverage
 - **TypeScript First**: Full type safety and IntelliSense support
