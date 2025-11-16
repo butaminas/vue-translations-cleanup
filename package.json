@@ -15,7 +15,10 @@
     "changelog": "git fetch --tags --prune && conventional-changelog -p angular -i CHANGELOG.md -s -r 0 --tag-prefix v",
     "release:patch": "commit-and-tag-version --release-as patch && npm run changelog",
     "release:minor": "commit-and-tag-version --release-as minor && npm run changelog",
-    "release:major": "commit-and-tag-version --release-as major && npm run changelog"
+    "release:major": "commit-and-tag-version --release-as major && npm run changelog",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs"
   },
   "keywords": [
     "i18n",
@@ -35,6 +38,7 @@
     "eslint": "^9.35.0",
     "memfs": "^4.51.0",
     "typescript": "^5.9.2",
+    "vitepress": "^1.6.4",
     "vitest": "^3.2.4"
   },
   "dependencies": {
