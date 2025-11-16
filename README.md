@@ -2,11 +2,14 @@
 
 [![npm version](https://img.shields.io/npm/v/vue-translations-cleanup.svg)](https://www.npmjs.com/package/vue-translations-cleanup)
 [![License](https://img.shields.io/npm/l/vue-translations-cleanup.svg)](https://github.com/yourusername/vue-translations-cleanup/blob/main/LICENSE)
-[![vue-i18n supported](https://img.shields.io/badge/vue--i18n-supported-brightgreen?logo=vue.js)](https://vue-i18n.intlify.dev/)
+[![Vue 3](https://img.shields.io/badge/Vue-3.x-brightgreen?logo=vue.js)](https://vuejs.org/)
+[![Nuxt 3/4](https://img.shields.io/badge/Nuxt-3%20%7C%204-00DC82?logo=nuxt.js)](https://nuxt.com/)
+[![vue-i18n](https://img.shields.io/badge/vue--i18n-supported-brightgreen)](https://vue-i18n.intlify.dev/)
+[![@nuxtjs/i18n](https://img.shields.io/badge/@nuxtjs/i18n-supported-00DC82)](https://i18n.nuxtjs.org/)
 
-A powerful dual-purpose tool for Vue.js i18n projects that helps you:
-1. **Clean up** unused translation keys (remove what you don't need)
-2. **Extract** raw strings and convert them to i18n automatically (migrate legacy code)
+A powerful dual-purpose tool for Vue.js and Nuxt i18n projects that helps you:
+1. **Clean up** unused translation keys (remove what's unused)
+2. **Extract** raw strings and convert them to i18n automatically
 
 Whether you're maintaining a mature i18n setup or migrating a legacy codebase, this tool has you covered.
 
@@ -15,7 +18,7 @@ Whether you're maintaining a mature i18n setup or migrating a legacy codebase, t
 ### Cleanup Mode (Default)
 
 - **Auto-detection and flexible targets:**
-  - Runs with no flags and attempts to auto-detect your source and translations paths (Vite + @intlify/unplugin-vue-i18n and common folders supported).
+  - Runs with no flags and attempts to auto-detect your source and translations paths (supports Nuxt 3/4 with @nuxtjs/i18n, Vite + @intlify/unplugin-vue-i18n, and common folder conventions).
   - Accepts either a single JSON file or an entire directory of JSON files for bulk cleanup.
 
 - **Advanced Translation Detection:**
@@ -55,8 +58,9 @@ Whether you're maintaining a mature i18n setup or migrating a legacy codebase, t
 
 ## Compatibility
 
-- Primary support: This tool targets the official vue-i18n (Intlify) library: https://vue-i18n.intlify.dev/
-- It may also work with other i18n libraries that expose compatible APIs (e.g., `t`, `$t`, `rt`, `tc`) and similar usage patterns (including Composition API). However, only vue-i18n is explicitly supported and covered by our tests.
+- **Vue 3**: Fully supported with [vue-i18n](https://vue-i18n.intlify.dev/) (Intlify)
+- **Nuxt 3/4**: Fully supported with [@nuxtjs/i18n](https://i18n.nuxtjs.org/)
+- May also work with other i18n libraries that expose compatible APIs (e.g., `t`, `$t`, `rt`, `tc`) and similar usage patterns (including Composition API). However, only vue-i18n and @nuxtjs/i18n are explicitly supported and tested.
 
 ## Installation
 

@@ -35,7 +35,14 @@ function baseDirFromInclude(includePath: string): string {
     .filter(i => i !== -1)
   const wildcardIdx = indices.length ? Math.min(...indices) : -1
   if (wildcardIdx !== -1) {
-    const before = includePath.slice(0, wildcardIdx)
+    let before = includePath.slice(0, wildcardIdx)
+    // Remove trailing slash if present
+    before = before.replace(/\/$/, '')
+    // If we removed a trailing slash and what's left is a directory path, return it
+    // Otherwise, get the directory name
+    if (before && !before.endsWith('.json') && !before.includes('.')) {
+      return before
+    }
     return path.dirname(before)
   }
   // If it ends with a file (e.g., .json), use its dirname
@@ -82,6 +89,61 @@ async function detectFromViteConfig(cwd: string): Promise<Partial<DetectedConfig
   return {}
 }
 
+async function detectFromNuxtConfig(cwd: string): Promise<Partial<DetectedConfig>> {
+  const nuxtFiles = [
+    'nuxt.config.ts',
+    'nuxt.config.mts',
+    'nuxt.config.js',
+    'nuxt.config.mjs',
+  ]
+  for (const nf of nuxtFiles) {
+    const full = path.join(cwd, nf)
+    if (!fs.existsSync(full))
+      continue
+    try {
+      const content = fs.readFileSync(full, 'utf-8')
+      // Check if @nuxtjs/i18n module is used
+      const hasI18nModule = /@nuxtjs\/i18n/.test(content)
+      if (!hasI18nModule)
+        continue
+
+      // Nuxt 4 typically uses /app/ for source, Nuxt 3 can use /src/ or root
+      // Nuxt i18n typically uses /i18n/locales/ or /locales/
+      const nuxtSrcCandidates = ['app', 'src']
+      const nuxtTranslationsCandidates = ['i18n/locales', 'locales', 'i18n']
+
+      let srcPath: string | undefined
+      for (const c of nuxtSrcCandidates) {
+        const p = path.join(cwd, c)
+        if (fs.existsSync(p) && fs.statSync(p).isDirectory()) {
+          srcPath = p
+          break
+        }
+      }
+
+      let translationsPath: string | undefined
+      for (const c of nuxtTranslationsCandidates) {
+        const p = path.join(cwd, c)
+        if (fs.existsSync(p) && fs.statSync(p).isDirectory()) {
+          const jsons = await glob('**/*.json', { cwd: p, nodir: true })
+          if (jsons.length > 0) {
+            translationsPath = p
+            break
+          }
+        }
+      }
+
+      if (srcPath || translationsPath) {
+        return { srcPath, translationsPath }
+      }
+    }
+    catch {
+      // ignore and continue
+    }
+  }
+  return {}
+}
+
 async function detectCommonPaths(cwd: string): Promise<Partial<DetectedConfig>> {
   const srcCandidates = [
     'src',
@@ -101,6 +163,7 @@ async function detectCommonPaths(cwd: string): Promise<Partial<DetectedConfig>> 
     'src/locales',
     'src/i18n',
     'src/translations',
+    'i18n/locales',
     'locales',
     'i18n',
     'translations',
@@ -121,9 +184,19 @@ async function detectCommonPaths(cwd: string): Promise<Partial<DetectedConfig>> 
 
 export async function detectConfig(cwd: string = process.cwd()): Promise<DetectedConfig> {
   const detected: DetectedConfig = {}
-  const fromVite = await detectFromViteConfig(cwd)
-  Object.assign(detected, fromVite)
 
+  // Try Nuxt config first
+  const fromNuxt = await detectFromNuxtConfig(cwd)
+  Object.assign(detected, fromNuxt)
+
+  // Then try Vite config
+  const fromVite = await detectFromViteConfig(cwd)
+  if (!detected.srcPath && fromVite.srcPath)
+    detected.srcPath = fromVite.srcPath
+  if (!detected.translationsPath && fromVite.translationsPath)
+    detected.translationsPath = fromVite.translationsPath
+
+  // Finally fall back to common paths
   const fromCommon = await detectCommonPaths(cwd)
   if (!detected.srcPath && fromCommon.srcPath)
     detected.srcPath = fromCommon.srcPath
@@ -131,7 +204,7 @@ export async function detectConfig(cwd: string = process.cwd()): Promise<Detecte
     detected.translationsPath = fromCommon.translationsPath
 
   if (!detected.srcPath && !detected.translationsPath) {
-    detected.reason = 'Could not detect Vite i18n include or common directories.'
+    detected.reason = 'Could not detect Nuxt/Vite i18n config or common directories.'
   }
   else if (!detected.srcPath) {
     detected.reason = 'Detected translations directory but could not detect source directory.'

@@ -4,16 +4,16 @@ This document provides a comprehensive guide for AI assistants working with the 
 
 ## Project Overview
 
-**vue-translations-cleanup** is a dual-purpose CLI tool for Vue.js i18n projects:
+**vue-translations-cleanup** is a dual-purpose CLI tool for Vue.js and Nuxt i18n projects:
 1. **Cleanup Mode** (default): Find and remove unused translation keys
 2. **Extract Mode** (new): Find raw strings and convert them to i18n keys
 
-It primarily targets the official vue-i18n (Intlify) library but may work with compatible i18n libraries.
+It primarily targets vue-i18n (Intlify) and @nuxtjs/i18n but may work with compatible i18n libraries.
 
 ### Key Features
 
 **Cleanup Mode**:
-- Auto-detection of source and translation paths (Vite + @intlify/unplugin-vue-i18n)
+- Auto-detection of source and translation paths (Nuxt 3/4 with @nuxtjs/i18n, Vite + @intlify/unplugin-vue-i18n)
 - Advanced translation detection (t(), $t(), rt(), $rt(), tc(), $tc(), Composition API)
 - Support for Vue template directives (v-t) and components (<i18n-t>)
 - Safe updates with automatic backups
@@ -479,10 +479,16 @@ CLI entry point with commander.js.
 #### 14. cli-detection.ts
 Auto-detection logic for translation and source paths.
 
-**Detection Strategy**:
-- Checks for Vite config with @intlify/unplugin-vue-i18n
-- Falls back to common folder conventions (src/, src/locales/, etc.)
-- Returns detected paths with reason/explanation
+**Detection Strategy** (priority order):
+1. **Nuxt detection**: Checks for nuxt.config.{ts,mts,js,mjs} with @nuxtjs/i18n module
+   - Nuxt 4 defaults: `app/` (source), `i18n/locales/` (translations)
+   - Nuxt 3 defaults: `src/` or `app/` (source), `locales/` or `i18n/locales/` (translations)
+2. **Vite detection**: Checks for vite.config with @intlify/unplugin-vue-i18n
+   - Parses `include` option to find translations path
+3. **Common paths fallback**: Standard directory conventions
+   - Source: `src/`, `app/`, `client/`
+   - Translations: `src/locales/`, `i18n/locales/`, `locales/`, `i18n/`, etc.
+4. Returns detected paths with reason/explanation
 
 #### 15. cli-style.ts
 Terminal styling utilities.
@@ -737,10 +743,10 @@ The patterns use various capturing groups. When adding patterns:
 
 ### Auto-detection Updates
 When improving auto-detection (cli-detection.ts):
-1. **Maintain fallback chain**: Specific detection -> common conventions
+1. **Maintain priority chain**: Nuxt detection -> Vite detection -> common conventions
 2. **Return reason**: Helpful for debugging and verbose mode
-3. **Add tests**: Update cli-autodetect-usage.test.ts
-4. **Consider new frameworks**: Support additional build tools/configs
+3. **Add tests**: Update cli-autodetect-usage.test.ts and cli-detection.test.ts
+4. **Consider new frameworks**: Support additional build tools/configs (currently supports Nuxt 3/4 and Vite)
 
 ### Config System Updates (NEW)
 When adding new config options:
