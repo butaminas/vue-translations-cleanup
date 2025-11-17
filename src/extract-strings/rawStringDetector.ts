@@ -1,6 +1,6 @@
 import fs from 'node:fs'
 import { parse as parseVueSFC } from '@vue/compiler-sfc'
-import type { ExtractConfig } from '@/config/types'
+import type { ExtractConfig } from '../config/types'
 import type { RawStringLocation } from './types'
 
 /**

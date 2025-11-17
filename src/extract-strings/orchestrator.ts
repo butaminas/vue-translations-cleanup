@@ -1,6 +1,6 @@
 import { glob } from 'glob'
-import type { ToolConfig } from '@/config/types'
-import { createAIClient } from '@/ai/client'
+import type { ToolConfig } from '../config/types'
+import { createAIClient } from '../ai/client'
 import { detectI18nPatterns } from './i18nPatternDetector'
 import { detectRawStrings } from './rawStringDetector'
 import { generateKeys } from './keyGenerator'

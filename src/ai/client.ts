@@ -1,4 +1,4 @@
-import type { AIConfig } from '@/config/types'
+import type { AIConfig } from '../config/types'
 
 export interface AIKeyGeneration {
   key: string

@@ -1,4 +1,4 @@
-import type { ExtractConfig } from '@/config/types'
+import type { ExtractConfig } from '../config/types'
 import type { RawStringLocation } from './types'
 
 /**

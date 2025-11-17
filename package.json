@@ -8,7 +8,7 @@
     "vue-translations-cleanup": "dist/cli.js"
   },
   "scripts": {
-    "build": "tsc && tsc-alias",
+    "build": "tsc",
     "test": "vitest --run",
     "lint": "eslint src/**/*.ts",
     "prepublishOnly": "pnpm run build",
@@ -37,7 +37,6 @@
     "conventional-changelog-cli": "^4.1.0",
     "eslint": "^9.35.0",
     "memfs": "^4.51.0",
-    "tsc-alias": "^1.8.16",
     "typescript": "^5.9.2",
     "vitepress": "^1.6.4",
     "vitest": "^3.2.4"

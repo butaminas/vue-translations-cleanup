@@ -1,6 +1,6 @@
 import fs from 'node:fs'
 import { glob } from 'glob'
-import type { I18nCustomPattern } from '@/config/types'
+import type { I18nCustomPattern } from '../config/types'
 import type { I18nDetectionResult, I18nUsagePattern } from './types'
 
 /**
