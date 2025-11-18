@@ -11,26 +11,41 @@ export interface ReplaceResult {
 
 /**
  * Replace a raw string with i18n function call in template
+ * Note: Always uses $t() in templates (globally available, no import needed)
  */
 function replaceInTemplate(
   content: string,
   location: RawStringLocation,
   key: string,
-  functionName: string,
 ): string {
   const { text, context, attributeName } = location
 
+  // Always use $t() in templates - it's globally available without imports
+  const functionName = '$t'
+
   if (context === 'attribute' && attributeName) {
-    // Replace attribute="text" with :attribute="t('key')"
+    // Replace attribute="text" with :attribute="$t('key')"
     // Handle both single and double quotes
     const attrRegex = new RegExp(`${attributeName}=["']${escapeRegex(text)}["']`, 'g')
     return content.replace(attrRegex, `:${attributeName}="${functionName}('${key}')"`)
   }
 
   if (context === 'template') {
-    // Replace >text< with >{{ t('key') }}<
-    const textRegex = new RegExp(`>\\s*${escapeRegex(text)}\\s*<`, 'g')
-    return content.replace(textRegex, `>{{ ${functionName}('${key}') }}<`)
+    // Handle both root-level text and text between tags
+    const escapedText = escapeRegex(text)
+
+    // Try to match text between tags first: >text<
+    const betweenTagsRegex = new RegExp(`(>)\\s*${escapedText}\\s*(<)`, 'g')
+    let replaced = content.replace(betweenTagsRegex, `$1{{ ${functionName}('${key}') }}$2`)
+
+    // If no replacement made, try root-level text (at start/end of template)
+    if (replaced === content) {
+      // Match text at root level (with whitespace before/after)
+      const rootLevelRegex = new RegExp(`(^|\\n)(\\s*)${escapedText}(\\s*)($|\\n)`, 'gm')
+      replaced = content.replace(rootLevelRegex, `$1$2{{ ${functionName}('${key}') }}$3$4`)
+    }
+
+    return replaced
   }
 
   return content
@@ -64,11 +79,26 @@ function replaceInScript(
 }
 
 /**
- * Check if import already exists in script
+ * Check if i18n function (t) is already available in script
+ * Checks for:
+ * - useI18n() destructuring: const { t } = useI18n()
+ * - Custom imports with t
+ * - injectContext() with t
  */
-function hasI18nImport(scriptContent: string, pattern: string): boolean {
-  // Simple check - look for the pattern in the script
-  return scriptContent.includes(pattern)
+function hasI18nImport(scriptContent: string, functionName: string = 't'): boolean {
+  // Check for various patterns where t is defined
+  const patterns = [
+    // const { t } = useI18n()
+    new RegExp(`const\\s*\\{[^}]*\\b${functionName}\\b[^}]*\\}\\s*=\\s*useI18n\\(\\)`),
+    // const { i18n: { t } } = injectContext()
+    new RegExp(`\\{[^}]*\\b${functionName}\\b[^}]*\\}[^}]*\\}\\s*=\\s*injectContext\\(\\)`),
+    // import { t } from
+    new RegExp(`import\\s*\\{[^}]*\\b${functionName}\\b[^}]*\\}\\s*from`),
+    // function t( or const t =
+    new RegExp(`(function|const)\\s+${functionName}\\s*[=(]`),
+  ]
+
+  return patterns.some(pattern => pattern.test(scriptContent))
 }
 
 /**
@@ -144,14 +174,14 @@ export function replaceStringsInVueFile(
   const templateLocations = locations.filter(l => l.context === 'template' || l.context === 'attribute')
   const scriptLocations = locations.filter(l => l.context === 'script')
 
-  // Replace in template
+  // Replace in template (uses $t, no import needed)
   if (descriptor.template && templateLocations.length > 0) {
     let templateContent = descriptor.template.content
 
     for (const location of templateLocations) {
       const key = keyMap.get(location.text)
       if (key) {
-        templateContent = replaceInTemplate(templateContent, location, key, functionName)
+        templateContent = replaceInTemplate(templateContent, location, key)
         replacements++
       }
     }
@@ -166,21 +196,22 @@ export function replaceStringsInVueFile(
     }
   }
 
-  // Replace in script and add import if needed
+  // Replace in script and add import if needed (uses t)
   const scriptDescriptor = descriptor.script || descriptor.scriptSetup
   if (scriptDescriptor && scriptLocations.length > 0) {
     let scriptContent = scriptDescriptor.content
+    let scriptReplacements = 0
 
     for (const location of scriptLocations) {
       const key = keyMap.get(location.text)
       if (key) {
         scriptContent = replaceInScript(scriptContent, location, key, functionName)
-        replacements++
+        scriptReplacements++
       }
     }
 
-    // Add import if replacements were made
-    if (replacements > 0 && !hasI18nImport(scriptContent, importTemplate)) {
+    // Add import if replacements were made and t is not already available
+    if (scriptReplacements > 0 && !hasI18nImport(scriptContent, functionName)) {
       const isSetup = descriptor.scriptSetup !== null
       scriptContent = addI18nImport(scriptContent, importTemplate, isSetup)
       importAdded = true
@@ -194,6 +225,9 @@ export function replaceStringsInVueFile(
         + scriptContent
         + modifiedContent.substring(scriptStart + scriptDescriptor.content.length)
     }
+
+    // Add script replacements to total count
+    replacements += scriptReplacements
   }
 
   // Create backup if needed
@@ -242,8 +276,8 @@ export function replaceStringsInJsFile(
     }
   }
 
-  // Add import if replacements were made
-  if (replacements > 0 && !hasI18nImport(content, importTemplate)) {
+  // Add import if replacements were made and t is not already available
+  if (replacements > 0 && !hasI18nImport(content, functionName)) {
     // Add import at the top of the file
     content = `${importTemplate}\n\n${content}`
     importAdded = true

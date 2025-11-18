@@ -72,7 +72,7 @@ describe('codeReplacer', () => {
       expect(result.importAdded).toBe(false) // No script replacements
 
       const updated = fs.readFileSync(file, 'utf-8')
-      expect(updated).toContain("{{ t('common.greeting') }}")
+      expect(updated).toContain("{{ $t('common.greeting') }}")
     })
 
     it('should replace attribute values with i18n function', () => {
@@ -100,7 +100,7 @@ describe('codeReplacer', () => {
       expect(result.replacements).toBe(1)
 
       const updated = fs.readFileSync(file, 'utf-8')
-      expect(updated).toContain(":placeholder=\"t('form.placeholder')\"")
+      expect(updated).toContain(":placeholder=\"$t('form.placeholder')\"")
     })
 
     it('should replace strings in script and add import', () => {
@@ -217,9 +217,9 @@ const message = "Hello World"
       expect(result.replacements).toBe(3)
 
       const updated = fs.readFileSync(file, 'utf-8')
-      expect(updated).toContain("{{ t('greeting') }}")
-      expect(updated).toContain("{{ t('welcome') }}")
-      expect(updated).toContain(":placeholder=\"t('placeholder')\"")
+      expect(updated).toContain("{{ $t('greeting') }}")
+      expect(updated).toContain("{{ $t('welcome') }}")
+      expect(updated).toContain(":placeholder=\"$t('placeholder')\"")
     })
   })
 
