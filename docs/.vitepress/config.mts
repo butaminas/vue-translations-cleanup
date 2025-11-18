@@ -18,8 +18,8 @@ export default defineConfig({
       {
         text: 'v2.0.0-beta',
         items: [
-          { text: 'Changelog', link: 'https://github.com/yourusername/vue-translations-cleanup/blob/main/CHANGELOG.md' },
-          { text: 'Contributing', link: 'https://github.com/yourusername/vue-translations-cleanup/blob/main/CONTRIBUTING.md' },
+          { text: 'Changelog', link: 'https://github.com/butaminas/vue-translations-cleanup/blob/main/CHANGELOG.md' },
+          { text: 'Contributing', link: 'https://github.com/butaminas/vue-translations-cleanup/blob/main/CONTRIBUTING.md' },
         ]
       }
     ],
@@ -80,7 +80,7 @@ export default defineConfig({
     },
 
     socialLinks: [
-      { icon: 'github', link: 'https://github.com/yourusername/vue-translations-cleanup' }
+      { icon: 'github', link: 'https://github.com/butaminas/vue-translations-cleanup' }
     ],
 
     footer: {
@@ -93,7 +93,7 @@ export default defineConfig({
     },
 
     editLink: {
-      pattern: 'https://github.com/yourusername/vue-translations-cleanup/edit/main/docs/:path',
+      pattern: 'https://github.com/butaminas/vue-translations-cleanup/edit/main/docs/:path',
       text: 'Edit this page on GitHub'
     }
   }

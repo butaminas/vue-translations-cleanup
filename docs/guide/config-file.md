@@ -44,7 +44,7 @@ export default {
 
 ## Full Configuration Reference
 
-See [vue-translations-cleanup.config.example.ts](https://github.com/yourusername/vue-translations-cleanup/blob/main/vue-translations-cleanup.config.example.ts) for a complete example with all available options and detailed comments.
+See [vue-translations-cleanup.config.example.ts](https://github.com/butaminas/vue-translations-cleanup/blob/main/vue-translations-cleanup.config.example.ts) for a complete example with all available options and detailed comments.
 
 ## Extract Configuration
 

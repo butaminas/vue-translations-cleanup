@@ -276,5 +276,5 @@ npx vue-translations-cleanup --verbose
 ## Getting Help
 
 - 📖 [Full Documentation](/)
-- 🐛 [Report Issues](https://github.com/yourusername/vue-translations-cleanup/issues)
-- 💬 [Discussions](https://github.com/yourusername/vue-translations-cleanup/discussions)
+- 🐛 [Report Issues](https://github.com/butaminas/vue-translations-cleanup/issues)
+- 💬 [Discussions](https://github.com/butaminas/vue-translations-cleanup/discussions)

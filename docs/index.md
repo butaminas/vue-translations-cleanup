@@ -14,7 +14,7 @@ hero:
       link: /guide/getting-started
     - theme: alt
       text: View on GitHub
-      link: https://github.com/yourusername/vue-translations-cleanup
+      link: https://github.com/butaminas/vue-translations-cleanup
 
 features:
   - icon: 🧹
