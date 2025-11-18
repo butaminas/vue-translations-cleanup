@@ -25,6 +25,7 @@ export interface AutoTranslateOptions {
 
   /**
    * New keys that were just extracted (only translate these)
+   * Map structure: sourceText -> translationKey (e.g., "Save" -> "common.save")
    */
   newKeys: Map<string, string>
 
@@ -401,7 +402,8 @@ export async function autoTranslate(options: AutoTranslateOptions): Promise<Auto
       let translatedCount = 0
 
       // Translate each new key
-      for (const [key, sourceText] of newKeys.entries()) {
+      // Note: newKeys Map is text -> key (e.g., "save" -> "testComp.save")
+      for (const [sourceText, key] of newKeys.entries()) {
         // Skip if translation already exists
         const existing = getNestedValue(targetTranslations, key)
         if (existing) {
