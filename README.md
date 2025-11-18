@@ -231,12 +231,27 @@ Options:
   -t, --translation-file <path>  Translation file or directory
   -s, --src-path <path>          Source files path
   -c, --config <path>            Config file path
+  --init                         Generate config file with detected settings
   --extract                      Extract raw strings (instead of cleanup)
   -n, --dry-run                  Preview changes without writing
   --no-backup                    Skip backup creation
   -v, --verbose                  Show detailed output
   -h, --help                     Display help
 ```
+
+### Quick Setup with --init
+
+Generate a config file with auto-detected settings:
+
+```bash
+npx vue-translations-cleanup --init
+```
+
+This will:
+- Detect your translation file location
+- Detect your source directory
+- Scan for existing i18n patterns in your codebase
+- Generate a `vue-translations-cleanup.config.ts` with recommended settings
 
 ## Compatibility
 
