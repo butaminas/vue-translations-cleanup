@@ -63,12 +63,7 @@ Auto-detection finds:
 
 ### Extract Mode
 
-```bash
-# Requires at least one i18n reference
-npx vue-translations-cleanup --extract
-```
-
-**Add i18n reference:**
+**First, add at least one i18n reference:**
 
 ```vue
 <!-- pages/index.vue -->
@@ -77,6 +72,16 @@ npx vue-translations-cleanup --extract
     <h1>{{ $t('home.title') }}</h1>
   </div>
 </template>
+```
+
+**Then run extraction:**
+
+```bash
+# Specify translation file for Nuxt
+npx vue-translations-cleanup --extract -t ./locales/en.json -s ./src
+
+# Or with auto-detected paths
+npx vue-translations-cleanup --extract -t ./locales/en.json
 ```
 
 ## Example Workflow
@@ -130,7 +135,7 @@ Add hardcoded strings:
 Extract them:
 
 ```bash
-npx vue-translations-cleanup --extract
+npx vue-translations-cleanup --extract -t ./locales/en.json -s ./src
 ```
 
 Result:
@@ -151,6 +156,9 @@ Result:
 ```typescript
 // vue-translations-cleanup.config.ts
 export default {
+  translationFile: './locales/en.json',
+  srcPath: './src',
+
   extract: {
     targetLanguage: 'en',
   },
@@ -160,8 +168,6 @@ export default {
     provider: 'anthropic',
     model: 'claude-3-5-sonnet-20241022',
     apiKey: process.env.ANTHROPIC_API_KEY,
-
-    autoTranslate: true,
     languages: ['de', 'fr'],
   },
 }
@@ -171,7 +177,7 @@ export default {
 
 ```bash
 export ANTHROPIC_API_KEY=sk-ant-...
-npx vue-translations-cleanup --extract
+npx vue-translations-cleanup --extract --config ./vue-translations-cleanup.config.ts
 ```
 
 Creates:

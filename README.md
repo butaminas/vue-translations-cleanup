@@ -19,8 +19,8 @@ npm install -D vue-translations-cleanup
 # Remove unused translations
 npx vue-translations-cleanup
 
-# Extract raw strings to i18n
-npx vue-translations-cleanup --extract
+# Extract raw strings to i18n (specify translation file)
+npx vue-translations-cleanup --extract -t ./locales/en.json -s ./src
 ```
 
 ## Features
@@ -81,10 +81,10 @@ npx vue-translations-cleanup --dry-run --verbose
 ### Extract Raw Strings
 
 ```bash
-# Extract with auto-detected settings
-npx vue-translations-cleanup --extract
+# Extract with explicit paths (recommended)
+npx vue-translations-cleanup --extract -t ./locales/en.json -s ./src
 
-# With config file for advanced features
+# With config file (enables auto-detection and advanced features)
 npx vue-translations-cleanup --extract --config ./my-config.ts
 ```
 

@@ -16,15 +16,22 @@ Perfect for migrating legacy code or adding i18n to existing projects.
 ## Basic Usage
 
 ```bash
-# Auto-detect and extract
-npx vue-translations-cleanup --extract
-
-# With specific paths
+# Specify translation file (required for extract mode)
 npx vue-translations-cleanup --extract -t ./locales/en.json -s ./src
 
+# With config file (enables auto-detection)
+npx vue-translations-cleanup --extract --config ./my-config.ts
+
 # Preview only
-npx vue-translations-cleanup --extract --dry-run --verbose
+npx vue-translations-cleanup --extract -t ./locales/en.json -s ./src --dry-run --verbose
 ```
+
+::: warning Important
+Extract mode requires a **single translation file**, not a directory.
+You must either:
+- Specify `-t ./locales/en.json` explicitly, OR
+- Use a `--config` file that defines `translationFile`
+:::
 
 ## Prerequisites
 
@@ -337,13 +344,15 @@ For non-standard i18n setups:
 ### Basic Extraction
 
 ```bash
-npx vue-translations-cleanup --extract
+# Specify translation file and source path
+npx vue-translations-cleanup --extract -t ./locales/en.json -s ./src
 ```
 
 ### Preview Changes
 
 ```bash
-npx vue-translations-cleanup --extract --dry-run --verbose
+# Dry run to see what would be extracted
+npx vue-translations-cleanup --extract -t ./locales/en.json -s ./src --dry-run --verbose
 ```
 
 Output:

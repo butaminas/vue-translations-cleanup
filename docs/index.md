@@ -95,7 +95,8 @@ npx vue-translations-cleanup -t ./locales/en.json -s ./src
 Convert raw strings to i18n automatically:
 
 ```bash
-npx vue-translations-cleanup --extract
+# Specify translation file for extract mode
+npx vue-translations-cleanup --extract -t ./locales/en.json -s ./src
 ```
 
 **Before:**
@@ -145,7 +146,11 @@ export default {
 
 **Run extraction**:
 ```bash
-npx vue-translations-cleanup --extract
+# With config file, you can use auto-detect
+npx vue-translations-cleanup --extract --config ./vue-translations-cleanup.config.ts
+
+# Or specify paths directly
+npx vue-translations-cleanup --extract -t ./locales/en.json -s ./src
 ```
 
 **Result** - Automatically creates translated files:

@@ -84,15 +84,20 @@ Unused translations:
 Convert raw strings to i18n:
 
 ```bash
-# Auto-detect paths
-npx vue-translations-cleanup --extract
+# Specify translation file (required for extract mode)
+npx vue-translations-cleanup --extract -t ./locales/en.json -s ./src
 
-# With config file
+# With config file (can auto-detect paths)
 npx vue-translations-cleanup --extract --config ./my-config.ts
 
 # Preview changes
-npx vue-translations-cleanup --extract --dry-run --verbose
+npx vue-translations-cleanup --extract -t ./locales/en.json -s ./src --dry-run --verbose
 ```
+
+::: warning Extract Mode Requirement
+Extract mode requires a **single translation file**, not a directory.
+Either specify `-t ./locales/en.json` or use a config file.
+:::
 
 **Output:**
 ```
