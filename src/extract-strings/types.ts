@@ -28,6 +28,13 @@ export interface I18nUsagePattern {
    * Type of pattern
    */
   type: 'compositionAPI' | 'optionsAPI' | 'global' | 'custom'
+
+  /**
+   * The import statement (if any) that makes this pattern available
+   * e.g., "import { useI18n } from 'vue-i18n'"
+   * or "import { injectContext } from '@/plugins/context'"
+   */
+  importStatement?: string
 }
 
 export interface I18nDetectionResult {

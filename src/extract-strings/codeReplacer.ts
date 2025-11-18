@@ -105,38 +105,60 @@ function hasI18nImport(scriptContent: string, functionName: string = 't'): boole
  */
 function addI18nImport(
   scriptContent: string,
-  importTemplate: string,
+  usagePattern: string,
+  importStatement: string | undefined,
   isSetup: boolean,
 ): string {
-  // Check if import already exists
-  if (hasI18nImport(scriptContent, importTemplate)) {
+  // Check if usage already exists
+  const functionName = usagePattern.match(/(\w+)\s*=/)?.[1] || 't'
+  if (hasI18nImport(scriptContent, functionName)) {
     return scriptContent
   }
 
   const lines = scriptContent.split('\n')
-  let insertIndex = 0
+  let importInsertIndex = 0
+  let usageInsertIndex = 0
 
-  // Find the best place to insert the import
+  // Find the best place to insert the import and usage
   if (isSetup) {
-    // For <script setup>, add after imports or at the beginning
+    // For <script setup>, add import after other imports or at the beginning
     for (let i = 0; i < lines.length; i++) {
       if (lines[i].trim().startsWith('import ')) {
-        insertIndex = i + 1
+        importInsertIndex = i + 1
       }
+    }
+    // Usage goes after imports (with a blank line if there are imports)
+    usageInsertIndex = importInsertIndex
+    if (importInsertIndex > 0) {
+      usageInsertIndex++ // Add blank line after imports
     }
   }
   else {
     // For regular <script>, add inside the component definition
     for (let i = 0; i < lines.length; i++) {
       if (lines[i].includes('export default')) {
-        insertIndex = i + 1
+        importInsertIndex = i + 1
+        usageInsertIndex = i + 1
         break
       }
     }
   }
 
-  // Insert the import
-  lines.splice(insertIndex, 0, importTemplate)
+  // Insert import statement first (if provided)
+  if (importStatement) {
+    lines.splice(importInsertIndex, 0, importStatement)
+    // Adjust usage insert index since we added a line
+    usageInsertIndex++
+  }
+
+  // Add blank line before usage if we added an import
+  if (importStatement && isSetup && importInsertIndex > 0) {
+    lines.splice(usageInsertIndex, 0, '')
+    usageInsertIndex++
+  }
+
+  // Insert the usage pattern
+  lines.splice(usageInsertIndex, 0, usagePattern)
 
   return lines.join('\n')
 }
@@ -168,6 +190,7 @@ export function replaceStringsInVueFile(
   // Determine which function name to use
   const functionName = i18nResult.recommendedPattern?.functionName || 't'
   const importTemplate = i18nResult.recommendedPattern?.pattern || 'const { t } = useI18n()'
+  const importStatement = i18nResult.recommendedPattern?.importStatement
 
   // Check if $t is globally available in templates
   const useGlobalT = shouldUseGlobalT(i18nResult)
@@ -226,7 +249,7 @@ export function replaceStringsInVueFile(
 
     if (needsImport) {
       const isSetup = descriptor.scriptSetup !== null
-      scriptContent = addI18nImport(scriptContent, importTemplate, isSetup)
+      scriptContent = addI18nImport(scriptContent, importTemplate, importStatement, isSetup)
       importAdded = true
     }
 
@@ -247,8 +270,20 @@ export function replaceStringsInVueFile(
   }
   // If no script section exists but we need import for template, we need to add a script section
   else if (templateReplacements > 0 && !useGlobalT) {
-    // Add a new <script setup> section with the import
-    const scriptSection = `\n<script setup>\n${importTemplate}\n</script>\n`
+    // Add a new <script setup> section with the import and usage
+    const scriptLines = ['<script setup>']
+
+    // Add import statement first (if available)
+    if (importStatement) {
+      scriptLines.push(importStatement)
+      scriptLines.push('') // Blank line after import
+    }
+
+    // Add usage pattern
+    scriptLines.push(importTemplate)
+    scriptLines.push('</script>')
+
+    const scriptSection = `\n${scriptLines.join('\n')}\n`
 
     // Find the end of template section
     if (descriptor.template) {
@@ -296,7 +331,8 @@ export function replaceStringsInJsFile(
   let importAdded = false
 
   const functionName = i18nResult.recommendedPattern?.functionName || 't'
-  const importTemplate = i18nResult.recommendedPattern?.pattern || 'import { useI18n } from "vue-i18n"\nconst { t } = useI18n()'
+  const importTemplate = i18nResult.recommendedPattern?.pattern || 'const { t } = useI18n()'
+  const importStatement = i18nResult.recommendedPattern?.importStatement
 
   for (const location of locations) {
     const key = keyMap.get(location.text)
@@ -308,8 +344,19 @@ export function replaceStringsInJsFile(
 
   // Add import if replacements were made and t is not already available
   if (replacements > 0 && !hasI18nImport(content, functionName)) {
+    // Build the import section
+    const importLines = []
+
+    // Add import statement if available
+    if (importStatement) {
+      importLines.push(importStatement)
+    }
+
+    // Add usage pattern
+    importLines.push(importTemplate)
+
     // Add import at the top of the file
-    content = `${importTemplate}\n\n${content}`
+    content = `${importLines.join('\n')}\n\n${content}`
     importAdded = true
   }
 

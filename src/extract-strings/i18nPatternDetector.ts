@@ -58,11 +58,57 @@ const BUILT_IN_PATTERNS = [
 ]
 
 /**
+ * Extract import statements for i18n-related functions
+ */
+function detectImportStatements(content: string): Map<string, string> {
+  const imports = new Map<string, string>()
+
+  // Match various import patterns:
+  // import { useI18n } from 'vue-i18n'
+  // import { injectContext } from '@/plugins/context'
+  // import { t } from '@/i18n'
+  const importRegex = /import\s+(?:\{([^}]+)\}|\*\s+as\s+(\w+)|(\w+))\s+from\s+['"]([^'"]+)['"]/g
+
+  for (const match of content.matchAll(importRegex)) {
+    const namedImports = match[1]
+    const namespaceImport = match[2]
+    const defaultImport = match[3]
+    const source = match[4]
+
+    if (namedImports) {
+      // Parse named imports: { useI18n, t as translate }
+      const names = namedImports.split(',').map(n => n.trim())
+      for (const name of names) {
+        const aliasMatch = name.match(/(\w+)(?:\s+as\s+(\w+))?/)
+        if (aliasMatch) {
+          const importedName = aliasMatch[1]
+          const localName = aliasMatch[2] || importedName
+          // Store the full import statement for this function
+          imports.set(localName, match[0])
+          imports.set(importedName, match[0]) // Also store by imported name
+        }
+      }
+    }
+    else if (namespaceImport) {
+      imports.set(namespaceImport, match[0])
+    }
+    else if (defaultImport) {
+      imports.set(defaultImport, match[0])
+    }
+  }
+
+  return imports
+}
+
+/**
  * Detect i18n usage patterns in a file
  */
 function detectPatternsInFile(filePath: string, customPatterns: I18nCustomPattern[]): Map<string, I18nUsagePattern> {
   const content = fs.readFileSync(filePath, 'utf-8')
   const patterns = new Map<string, I18nUsagePattern>()
+
+  // Detect import statements first
+  const importStatements = detectImportStatements(content)
 
   // Check built-in patterns
   for (const builtIn of BUILT_IN_PATTERNS) {
@@ -71,6 +117,17 @@ function detectPatternsInFile(filePath: string, customPatterns: I18nCustomPatter
     for (const match of matches) {
       const patternKey = builtIn.template
       const functionName = match[1] || builtIn.functionName
+
+      // Try to find the import statement for this pattern
+      // For useI18n() pattern, look for "useI18n" import
+      // For injectContext() pattern, look for "injectContext" import
+      let importStatement: string | undefined
+      if (builtIn.template.includes('useI18n')) {
+        importStatement = importStatements.get('useI18n')
+      }
+      else if (builtIn.template.includes('injectContext')) {
+        importStatement = importStatements.get('injectContext')
+      }
 
       if (patterns.has(patternKey)) {
         patterns.get(patternKey)!.count++
@@ -83,6 +140,7 @@ function detectPatternsInFile(filePath: string, customPatterns: I18nCustomPatter
           file: filePath,
           count: 1,
           type: builtIn.type,
+          importStatement,
         })
       }
     }
@@ -99,8 +157,28 @@ function detectPatternsInFile(filePath: string, customPatterns: I18nCustomPatter
     for (const match of matches) {
       const patternKey = custom.importTemplate
 
+      // Try to find the import statement for this custom pattern
+      // 1. If user provided importStatement in config, use that (explicit wins)
+      // 2. Otherwise, try to detect from code
+      let importStatement: string | undefined = custom.importStatement
+
+      if (!importStatement) {
+        // Try to detect import from the usage pattern
+        const usagePattern = custom.importTemplate
+        // Look for common function calls in the usage pattern
+        const functionMatch = usagePattern.match(/(\w+)\s*\(/)
+        if (functionMatch) {
+          const functionName = functionMatch[1]
+          importStatement = importStatements.get(functionName)
+        }
+      }
+
       if (patterns.has(patternKey)) {
         patterns.get(patternKey)!.count++
+        // Update import statement if we found one and it wasn't set before
+        if (importStatement && !patterns.get(patternKey)!.importStatement) {
+          patterns.get(patternKey)!.importStatement = importStatement
+        }
       }
       else {
         patterns.set(patternKey, {
@@ -110,6 +188,7 @@ function detectPatternsInFile(filePath: string, customPatterns: I18nCustomPatter
           file: filePath,
           count: 1,
           type: 'custom',
+          importStatement,
         })
       }
     }
