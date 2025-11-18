@@ -43,14 +43,37 @@ function isLikelyTranslatable(text: string, confidence: ExtractConfig['confidenc
     return { translatable: false, confidence: 'high', reason: 'hex color' }
   }
 
+  // Object/array destructuring syntax in templates: { foo }, [ bar ]
+  if (/^[{[].*[}\]]$/.test(trimmed)) {
+    return { translatable: false, confidence: 'high', reason: 'destructuring syntax' }
+  }
+
+  // CSS properties and values
+  if (/[:;]/.test(trimmed) || /^[a-z-]+:\s*[^;]+;?$/i.test(trimmed)) {
+    return { translatable: false, confidence: 'high', reason: 'CSS code' }
+  }
+
   // CSS classes or IDs (single words with hyphens/underscores)
   if (/^[a-z][a-z0-9_-]*$/i.test(trimmed) && trimmed.includes('-')) {
     return { translatable: false, confidence: 'medium', reason: 'likely CSS class' }
   }
 
-  // Single words without spaces (could be variable names)
+  // camelCase or PascalCase (likely variable/function names)
+  if (/^[a-z]+[A-Z]/.test(trimmed) || /^[A-Z][a-z]+[A-Z]/.test(trimmed)) {
+    return { translatable: false, confidence: 'high', reason: 'camelCase/PascalCase identifier' }
+  }
+
+  // Single words without spaces
   if (!/\s/.test(trimmed) && trimmed.length < 15) {
-    // But if it has spaces or is longer, more likely to be translatable
+    // Allow normal capitalized words (UI labels like "Save", "Cancel", "Edit")
+    if (/^[A-Z][a-z]+$/.test(trimmed) && trimmed.length >= 3) {
+      return { translatable: true, confidence: 'high' }  // UI labels are clearly translatable
+    }
+    // Filter out lowercase-only single words (variable names, CSS classes)
+    if (trimmed === trimmed.toLowerCase()) {
+      return { translatable: false, confidence: 'medium', reason: 'lowercase single word' }
+    }
+    // Other short single words - probably not translatable
     return { translatable: false, confidence: 'low', reason: 'single short word' }
   }
 
@@ -90,6 +113,23 @@ function isLikelyTranslatable(text: string, confidence: ExtractConfig['confidenc
 }
 
 /**
+ * Check if text contains Vue interpolation or i18n calls
+ */
+function containsVueInterpolationOrI18n(text: string): boolean {
+  // Contains Vue interpolation {{ }}
+  if (/\{\{.*\}\}/.test(text)) {
+    return true
+  }
+
+  // Contains i18n function calls (very common patterns)
+  if (/\b\$?t\s*\(/.test(text)) {
+    return true
+  }
+
+  return false
+}
+
+/**
  * Extract raw strings from Vue template
  */
 function extractFromTemplate(
@@ -101,15 +141,19 @@ function extractFromTemplate(
   const minConfidence = config.confidence || 'high'
   const confidenceLevels = { high: 3, medium: 2, low: 1 }
 
-  // Simple regex-based extraction for template text nodes
-  // This is a simplified approach - for production, use proper AST parsing
-
   // Text between tags: >text<
+  // But exclude anything with Vue interpolations {{ }}
   const textNodeRegex = />([^<]+)</g
   let match: RegExpExecArray | null
 
   while ((match = textNodeRegex.exec(templateContent)) !== null) {
     const text = match[1]
+
+    // Skip if it contains Vue interpolation or i18n calls
+    if (containsVueInterpolationOrI18n(text)) {
+      continue
+    }
+
     const analysis = isLikelyTranslatable(text, minConfidence)
 
     if (analysis.translatable && confidenceLevels[analysis.confidence] >= confidenceLevels[minConfidence]) {
@@ -135,10 +179,22 @@ function extractFromTemplate(
 
   for (const attr of includeAttributes) {
     // Match attribute="value" or attribute='value'
-    const attrRegex = new RegExp(`${attr}=["']([^"']+)["']`, 'gi')
+    const attrRegex = new RegExp(`\\b${attr}=["']([^"']+)["']`, 'gi')
 
     while ((match = attrRegex.exec(templateContent)) !== null) {
       const text = match[1]
+
+      // Skip dynamic bindings (:attr or v-bind:attr)
+      const beforeMatch = templateContent.substring(Math.max(0, match.index - 10), match.index)
+      if (/:$/.test(beforeMatch.trim()) || /v-bind:$/.test(beforeMatch.trim())) {
+        continue
+      }
+
+      // Skip if contains interpolation or i18n calls
+      if (containsVueInterpolationOrI18n(text)) {
+        continue
+      }
+
       const analysis = isLikelyTranslatable(text, minConfidence)
 
       if (analysis.translatable && confidenceLevels[analysis.confidence] >= confidenceLevels[minConfidence]) {
