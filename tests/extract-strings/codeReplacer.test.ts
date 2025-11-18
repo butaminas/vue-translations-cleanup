@@ -16,7 +16,24 @@ vi.mock('node:fs/promises', () => vol.promises)
 describe('codeReplacer', () => {
   const testDir = '/test'
 
-  const mockI18nResult: I18nDetectionResult = {
+  // Mock for projects using global $t in templates
+  const mockI18nResultGlobal: I18nDetectionResult = {
+    patterns: [],
+    recommendedPattern: {
+      pattern: '$t(...)',
+      functionName: '$t',
+      example: '$t(\'key\')',
+      file: '/test.vue',
+      count: 1,
+      type: 'global',
+    },
+    functionNames: new Set(['$t']),
+    filesScanned: 1,
+    filesWithI18n: 1,
+  }
+
+  // Mock for projects using Composition API (useI18n)
+  const mockI18nResultCompositionAPI: I18nDetectionResult = {
     patterns: [],
     recommendedPattern: {
       pattern: 'const { t } = useI18n()',
@@ -51,7 +68,7 @@ describe('codeReplacer', () => {
   })
 
   describe('replaceStringsInVueFile', () => {
-    it('should replace template text with i18n function', () => {
+    it('should replace template text with i18n function (global $t)', () => {
       const file = path.join(testDir, 'Component.vue')
       fs.writeFileSync(file, `
 <template>
@@ -66,13 +83,38 @@ describe('codeReplacer', () => {
       ]
       const keyMap = new Map([['Hello World', 'common.greeting']])
 
-      const result = replaceStringsInVueFile(file, locations, keyMap, mockI18nResult, false)
+      const result = replaceStringsInVueFile(file, locations, keyMap, mockI18nResultGlobal, false)
 
       expect(result.replacements).toBe(1)
-      expect(result.importAdded).toBe(false) // No script replacements
+      expect(result.importAdded).toBe(false) // Global $t doesn't need import
 
       const updated = fs.readFileSync(file, 'utf-8')
       expect(updated).toContain("{{ $t('common.greeting') }}")
+    })
+
+    it('should replace template text with Composition API t() and add import', () => {
+      const file = path.join(testDir, 'Component.vue')
+      fs.writeFileSync(file, `
+<template>
+  <div>Hello World</div>
+</template>
+<script setup>
+</script>
+      `)
+
+      const locations: RawStringLocation[] = [
+        createLocation({ text: 'Hello World', file }),
+      ]
+      const keyMap = new Map([['Hello World', 'common.greeting']])
+
+      const result = replaceStringsInVueFile(file, locations, keyMap, mockI18nResultCompositionAPI, false)
+
+      expect(result.replacements).toBe(1)
+      expect(result.importAdded).toBe(true) // Composition API needs import for template
+
+      const updated = fs.readFileSync(file, 'utf-8')
+      expect(updated).toContain("{{ t('common.greeting') }}")
+      expect(updated).toContain('const { t } = useI18n()')
     })
 
     it('should replace attribute values with i18n function', () => {
@@ -95,7 +137,7 @@ describe('codeReplacer', () => {
       ]
       const keyMap = new Map([['Enter your name', 'form.placeholder']])
 
-      const result = replaceStringsInVueFile(file, locations, keyMap, mockI18nResult, false)
+      const result = replaceStringsInVueFile(file, locations, keyMap, mockI18nResultGlobal, false)
 
       expect(result.replacements).toBe(1)
 
@@ -121,7 +163,7 @@ const message = "Hello World"
       ]
       const keyMap = new Map([['Hello World', 'common.greeting']])
 
-      const result = replaceStringsInVueFile(file, locations, keyMap, mockI18nResult, false)
+      const result = replaceStringsInVueFile(file, locations, keyMap, mockI18nResultCompositionAPI, false)
 
       expect(result.replacements).toBe(1)
       expect(result.importAdded).toBe(true)
@@ -150,7 +192,7 @@ const message = "Hello World"
       ]
       const keyMap = new Map([['Hello World', 'common.greeting']])
 
-      const result = replaceStringsInVueFile(file, locations, keyMap, mockI18nResult, false)
+      const result = replaceStringsInVueFile(file, locations, keyMap, mockI18nResultCompositionAPI, false)
 
       expect(result.replacements).toBe(1)
       expect(result.importAdded).toBe(false)
@@ -175,7 +217,7 @@ const message = "Hello World"
       ]
       const keyMap = new Map([['Hello World', 'common.greeting']])
 
-      const result = replaceStringsInVueFile(file, locations, keyMap, mockI18nResult, true)
+      const result = replaceStringsInVueFile(file, locations, keyMap, mockI18nResultGlobal, true)
 
       expect(result.backupCreated).toBe(true)
 
@@ -212,7 +254,7 @@ const message = "Hello World"
         ['Enter name', 'placeholder'],
       ])
 
-      const result = replaceStringsInVueFile(file, locations, keyMap, mockI18nResult, false)
+      const result = replaceStringsInVueFile(file, locations, keyMap, mockI18nResultGlobal, false)
 
       expect(result.replacements).toBe(3)
 
@@ -248,7 +290,7 @@ export const SUCCESS_MESSAGE = 'Success'
         ['Success', 'success.general'],
       ])
 
-      const result = replaceStringsInJsFile(file, locations, keyMap, mockI18nResult, false)
+      const result = replaceStringsInJsFile(file, locations, keyMap, mockI18nResultCompositionAPI, false)
 
       expect(result.replacements).toBe(2)
 
@@ -272,7 +314,7 @@ export const MESSAGE = "Hello"
       ]
       const keyMap = new Map([['Hello', 'greeting']])
 
-      const result = replaceStringsInJsFile(file, locations, keyMap, mockI18nResult, false)
+      const result = replaceStringsInJsFile(file, locations, keyMap, mockI18nResultCompositionAPI, false)
 
       expect(result.importAdded).toBe(true)
 

@@ -51,9 +51,7 @@ export async function runExtraction(options: ExtractOptions): Promise<ExtractRes
   }
 
   // Step 1: Detect existing i18n patterns
-  if (verbose) {
-    console.log('\n[1/5] Detecting i18n usage patterns...')
-  }
+  console.log('\n[1/5] Detecting i18n usage patterns...')
 
   const i18nResult = await detectI18nPatterns(
     srcPath,
@@ -67,6 +65,9 @@ export async function runExtraction(options: ExtractOptions): Promise<ExtractRes
       console.log(`  Recommended pattern: ${i18nResult.recommendedPattern.pattern}`)
       console.log(`  Function name: ${i18nResult.recommendedPattern.functionName}`)
     }
+  }
+  else if (i18nResult.recommendedPattern) {
+    console.log(`  ✓ Found i18n pattern: ${i18nResult.recommendedPattern.functionName}`)
   }
 
   // Validate that we found at least one i18n pattern
@@ -105,10 +106,8 @@ export async function runExtraction(options: ExtractOptions): Promise<ExtractRes
   }
 
   // Step 2: Find source files
-  if (verbose) {
-    const totalSteps = (config.ai?.languages?.length) ? 6 : 5
-    console.log(`\n[2/${totalSteps}] Scanning for source files...`)
-  }
+  const totalSteps = (config.ai?.languages?.length) ? 6 : 5
+  console.log(`\n[2/${totalSteps}] Scanning for source files...`)
 
   const files = await glob(filePattern, {
     cwd: srcPath,
@@ -120,17 +119,20 @@ export async function runExtraction(options: ExtractOptions): Promise<ExtractRes
   if (verbose) {
     console.log(`  Found ${files.length} files to scan`)
   }
+  else {
+    console.log(`  ✓ Found ${files.length} files`)
+  }
 
   // Step 3: Detect raw strings
-  if (verbose) {
-    const totalSteps = (config.ai?.languages?.length) ? 6 : 5
-    console.log(`\n[3/${totalSteps}] Detecting raw translatable strings...`)
-  }
+  console.log(`\n[3/${totalSteps}] Detecting raw translatable strings...`)
 
   const rawStrings = await detectRawStrings(files, extractConfig)
 
   if (verbose) {
     console.log(`  Detected ${rawStrings.length} translatable strings`)
+  }
+  else {
+    console.log(`  ✓ Detected ${rawStrings.length} strings`)
   }
 
   if (rawStrings.length === 0) {
@@ -145,18 +147,20 @@ export async function runExtraction(options: ExtractOptions): Promise<ExtractRes
   }
 
   // Step 4: Generate translation keys
-  if (verbose) {
-    const totalSteps = (config.ai?.languages?.length) ? 6 : 5
-    console.log(`\n[4/${totalSteps}] Generating translation keys...`)
-  }
+  console.log(`\n[4/${totalSteps}] Generating translation keys...`)
 
   let keyMap: Map<string, string>
 
   // Check if AI is enabled
   const aiClient = config.ai?.enabled ? createAIClient(config.ai) : null
 
-  if (aiClient && verbose) {
-    console.log('  AI-powered key generation enabled')
+  if (aiClient) {
+    if (verbose) {
+      console.log('  AI-powered key generation enabled')
+    }
+    else {
+      console.log('  Using AI-powered key generation')
+    }
   }
 
   // For now, use heuristic generation (AI integration would go here)
@@ -165,12 +169,12 @@ export async function runExtraction(options: ExtractOptions): Promise<ExtractRes
   if (verbose) {
     console.log(`  Generated ${keyMap.size} unique keys`)
   }
+  else {
+    console.log(`  ✓ Generated ${keyMap.size} unique keys`)
+  }
 
   // Step 5: Replace strings and update translations
-  if (verbose) {
-    const totalSteps = (config.ai?.languages?.length) ? 6 : 5
-    console.log(`\n[5/${totalSteps}] Replacing strings in files...`)
-  }
+  console.log(`\n[5/${totalSteps}] Replacing strings in files...`)
 
   const filesModified: string[] = []
   let importsAdded = 0
@@ -222,6 +226,9 @@ export async function runExtraction(options: ExtractOptions): Promise<ExtractRes
 
     if (verbose) {
       console.log(`\nUpdated translation file: ${translationFile}`)
+    }
+    else {
+      console.log(`  ✓ Modified ${filesModified.length} files, ${importsAdded} imports added`)
     }
 
     // Step 6: Auto-translate to other languages (if languages configured)
@@ -276,18 +283,16 @@ export async function runExtraction(options: ExtractOptions): Promise<ExtractRes
   // Calculate statistics
   const duration = Date.now() - startTime
 
-  if (verbose) {
-    console.log(`\n=== Extraction Complete ===`)
-    console.log(`Files scanned: ${files.length}`)
-    console.log(`Strings extracted: ${rawStrings.length}`)
-    console.log(`Unique keys: ${keyMap.size}`)
-    console.log(`Files modified: ${filesModified.length}`)
-    console.log(`Imports added: ${importsAdded}`)
-    console.log(`Duration: ${(duration / 1000).toFixed(2)}s`)
+  console.log(`\n=== Extraction Complete ===`)
+  console.log(`Files scanned: ${files.length}`)
+  console.log(`Strings extracted: ${rawStrings.length}`)
+  console.log(`Unique keys: ${keyMap.size}`)
+  console.log(`Files modified: ${filesModified.length}`)
+  console.log(`Imports added: ${importsAdded}`)
+  console.log(`Duration: ${(duration / 1000).toFixed(2)}s`)
 
-    if (dryRun) {
-      console.log('\n(Dry run - no actual changes made)')
-    }
+  if (dryRun) {
+    console.log('\n(Dry run - no actual changes made)')
   }
 
   // Find duplicates (same text appears multiple times)

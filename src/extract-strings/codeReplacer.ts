@@ -1,5 +1,6 @@
 import fs from 'node:fs'
 import { parse as parseVueSFC } from '@vue/compiler-sfc'
+import { shouldUseGlobalT } from './i18nPatternDetector'
 import type { I18nDetectionResult, RawStringLocation } from './types'
 
 export interface ReplaceResult {
@@ -11,20 +12,18 @@ export interface ReplaceResult {
 
 /**
  * Replace a raw string with i18n function call in template
- * Note: Always uses $t() in templates (globally available, no import needed)
+ * Uses $t() if globally available, otherwise uses t() (requires import)
  */
 function replaceInTemplate(
   content: string,
   location: RawStringLocation,
   key: string,
+  functionName: string,
 ): string {
   const { text, context, attributeName } = location
 
-  // Always use $t() in templates - it's globally available without imports
-  const functionName = '$t'
-
   if (context === 'attribute' && attributeName) {
-    // Replace attribute="text" with :attribute="$t('key')"
+    // Replace attribute="text" with :attribute="t('key')"
     // Handle both single and double quotes
     const attrRegex = new RegExp(`${attributeName}=["']${escapeRegex(text)}["']`, 'g')
     return content.replace(attrRegex, `:${attributeName}="${functionName}('${key}')"`)
@@ -170,18 +169,26 @@ export function replaceStringsInVueFile(
   const functionName = i18nResult.recommendedPattern?.functionName || 't'
   const importTemplate = i18nResult.recommendedPattern?.pattern || 'const { t } = useI18n()'
 
+  // Check if $t is globally available in templates
+  const useGlobalT = shouldUseGlobalT(i18nResult)
+  const templateFunctionName = useGlobalT ? '$t' : functionName
+
   // Group locations by context
   const templateLocations = locations.filter(l => l.context === 'template' || l.context === 'attribute')
   const scriptLocations = locations.filter(l => l.context === 'script')
 
-  // Replace in template (uses $t, no import needed)
+  // Track if we need to add import for template usage
+  let templateReplacements = 0
+
+  // Replace in template
   if (descriptor.template && templateLocations.length > 0) {
     let templateContent = descriptor.template.content
 
     for (const location of templateLocations) {
       const key = keyMap.get(location.text)
       if (key) {
-        templateContent = replaceInTemplate(templateContent, location, key)
+        templateContent = replaceInTemplate(templateContent, location, key, templateFunctionName)
+        templateReplacements++
         replacements++
       }
     }
@@ -196,12 +203,13 @@ export function replaceStringsInVueFile(
     }
   }
 
-  // Replace in script and add import if needed (uses t)
+  // Replace in script and add import if needed
   const scriptDescriptor = descriptor.script || descriptor.scriptSetup
-  if (scriptDescriptor && scriptLocations.length > 0) {
+  if (scriptDescriptor) {
     let scriptContent = scriptDescriptor.content
     let scriptReplacements = 0
 
+    // Replace strings in script
     for (const location of scriptLocations) {
       const key = keyMap.get(location.text)
       if (key) {
@@ -210,24 +218,46 @@ export function replaceStringsInVueFile(
       }
     }
 
-    // Add import if replacements were made and t is not already available
-    if (scriptReplacements > 0 && !hasI18nImport(scriptContent, functionName)) {
+    // Add import if:
+    // 1. We made script replacements, OR
+    // 2. We made template replacements using non-global t() (needs import for template)
+    const needsImport = (scriptReplacements > 0 || (templateReplacements > 0 && !useGlobalT))
+      && !hasI18nImport(scriptContent, functionName)
+
+    if (needsImport) {
       const isSetup = descriptor.scriptSetup !== null
       scriptContent = addI18nImport(scriptContent, importTemplate, isSetup)
       importAdded = true
     }
 
-    // Reconstruct the file with modified script
-    const scriptStart = modifiedContent.indexOf(scriptDescriptor.content)
-    if (scriptStart !== -1) {
-      modifiedContent
-        = modifiedContent.substring(0, scriptStart)
-        + scriptContent
-        + modifiedContent.substring(scriptStart + scriptDescriptor.content.length)
+    // Only update modifiedContent if we actually changed something
+    if (scriptReplacements > 0 || importAdded) {
+      // Reconstruct the file with modified script
+      const scriptStart = modifiedContent.indexOf(scriptDescriptor.content)
+      if (scriptStart !== -1) {
+        modifiedContent
+          = modifiedContent.substring(0, scriptStart)
+          + scriptContent
+          + modifiedContent.substring(scriptStart + scriptDescriptor.content.length)
+      }
     }
 
     // Add script replacements to total count
     replacements += scriptReplacements
+  }
+  // If no script section exists but we need import for template, we need to add a script section
+  else if (templateReplacements > 0 && !useGlobalT) {
+    // Add a new <script setup> section with the import
+    const scriptSection = `\n<script setup>\n${importTemplate}\n</script>\n`
+
+    // Find the end of template section
+    if (descriptor.template) {
+      const templateEnd = modifiedContent.indexOf('</template>') + '</template>'.length
+      modifiedContent = modifiedContent.substring(0, templateEnd)
+        + scriptSection
+        + modifiedContent.substring(templateEnd)
+      importAdded = true
+    }
   }
 
   // Create backup if needed
