@@ -312,7 +312,6 @@ Respond with JSON in this format:
       category?: string
     },
   ): string {
-    const sourceLang = context?.sourceLanguage || 'English'
     const langNames: Record<string, string> = {
       en: 'English',
       de: 'German',
@@ -330,15 +329,17 @@ Respond with JSON in this format:
     }
     const targetLangName = langNames[targetLanguage] || targetLanguage
 
-    return `Translate the following text from ${sourceLang} to ${targetLangName}.
+    return `Translate to ${targetLangName}: "${text}"
 
-Text: "${text}"
+Rules:
+- Output ONLY the ${targetLangName} translation of "${text}"
+- Return valid JSON: {"translation": "your translation", "confidence": 0.95}
+- Do NOT include any technical terms, key names, or metadata in the translation
+- Preserve variables like {name} or {{count}} exactly as they are
 
-IMPORTANT: Respond with ONLY valid JSON, no additional text.
-Preserve any variables like {name} or {{count}} exactly.
-
-Response format:
-{"translation": "translated text here", "confidence": 0.95}`
+Example:
+Input: "Save"
+Output: {"translation": "Speichern", "confidence": 0.95}`
   }
 
   /**
