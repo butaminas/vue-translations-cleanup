@@ -236,36 +236,6 @@ describe('config/validator', () => {
     })
 
     describe('cleanup validation', () => {
-      it('should reject non-boolean backup', () => {
-        const config: ToolConfig = {
-          cleanup: {
-            backup: 'yes' as any,
-          },
-        }
-
-        expect(() => validateConfig(config)).toThrow('backup must be a boolean')
-      })
-
-      it('should reject non-boolean verbose', () => {
-        const config: ToolConfig = {
-          cleanup: {
-            verbose: 'yes' as any,
-          },
-        }
-
-        expect(() => validateConfig(config)).toThrow('verbose must be a boolean')
-      })
-
-      it('should reject non-boolean dryRun', () => {
-        const config: ToolConfig = {
-          cleanup: {
-            dryRun: 'yes' as any,
-          },
-        }
-
-        expect(() => validateConfig(config)).toThrow('dryRun must be a boolean')
-      })
-
       it('should reject non-string pattern', () => {
         const config: ToolConfig = {
           cleanup: {
@@ -274,6 +244,32 @@ describe('config/validator', () => {
         }
 
         expect(() => validateConfig(config)).toThrow('pattern must be a string')
+      })
+    })
+
+    describe('root-level options (apply to both modes)', () => {
+      it('should reject non-boolean backup', () => {
+        const config: ToolConfig = {
+          backup: 'yes' as any,
+        }
+
+        expect(() => validateConfig(config)).toThrow('backup must be a boolean')
+      })
+
+      it('should reject non-boolean verbose', () => {
+        const config: ToolConfig = {
+          verbose: 'yes' as any,
+        }
+
+        expect(() => validateConfig(config)).toThrow('verbose must be a boolean')
+      })
+
+      it('should reject non-boolean dryRun', () => {
+        const config: ToolConfig = {
+          dryRun: 'yes' as any,
+        }
+
+        expect(() => validateConfig(config)).toThrow('dryRun must be a boolean')
       })
     })
   })
@@ -290,20 +286,18 @@ describe('config/validator', () => {
       const config: ToolConfig = {
         translationFile: './custom/path.json',
         srcPath: './custom/src',
-        cleanup: {
-          backup: false,
-          verbose: true,
-        },
+        backup: false,
+        verbose: true,
       }
 
       const merged = mergeWithDefaults(config)
 
       expect(merged.translationFile).toBe('./custom/path.json')
       expect(merged.srcPath).toBe('./custom/src')
-      expect(merged.cleanup.backup).toBe(false)
-      expect(merged.cleanup.verbose).toBe(true)
+      expect(merged.backup).toBe(false)
+      expect(merged.verbose).toBe(true)
       // Should still have defaults for unspecified values
-      expect(merged.cleanup.dryRun).toBe(DEFAULT_CONFIG.cleanup.dryRun)
+      expect(merged.dryRun).toBe(DEFAULT_CONFIG.dryRun)
     })
 
     it('should merge nested extract config', () => {
@@ -415,10 +409,13 @@ describe('config/validator', () => {
       expect(DEFAULT_CONFIG.ai.timeout).toBe(30000)
     })
 
+    it('should have sensible root-level defaults', () => {
+      expect(DEFAULT_CONFIG.backup).toBe(true)
+      expect(DEFAULT_CONFIG.verbose).toBe(false)
+      expect(DEFAULT_CONFIG.dryRun).toBe(false)
+    })
+
     it('should have sensible cleanup defaults', () => {
-      expect(DEFAULT_CONFIG.cleanup.backup).toBe(true)
-      expect(DEFAULT_CONFIG.cleanup.verbose).toBe(false)
-      expect(DEFAULT_CONFIG.cleanup.dryRun).toBe(false)
       expect(DEFAULT_CONFIG.cleanup.pattern).toBe('**/*.{vue,js,ts,tsx,jsx,mjs,cjs}')
     })
   })

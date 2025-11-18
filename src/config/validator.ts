@@ -6,6 +6,9 @@ import type { AIConfig, CleanupConfig, ExtractConfig, I18nCustomPattern, ToolCon
 export const DEFAULT_CONFIG: Required<ToolConfig> = {
   translationFile: '',
   srcPath: '',
+  backup: true,
+  verbose: false,
+  dryRun: false,
   extract: {
     targetLanguage: 'en',
     confidence: 'high',
@@ -27,9 +30,6 @@ export const DEFAULT_CONFIG: Required<ToolConfig> = {
     timeout: 30000,
   },
   cleanup: {
-    backup: true,
-    verbose: false,
-    dryRun: false,
     pattern: '**/*.{vue,js,ts,tsx,jsx,mjs,cjs}',
   },
 }
@@ -133,18 +133,6 @@ function validateAIConfig(config: AIConfig): void {
  * Validate cleanup configuration
  */
 function validateCleanupConfig(config: CleanupConfig): void {
-  if (config.backup !== undefined && typeof config.backup !== 'boolean') {
-    throw new Error('cleanup.backup must be a boolean')
-  }
-
-  if (config.verbose !== undefined && typeof config.verbose !== 'boolean') {
-    throw new Error('cleanup.verbose must be a boolean')
-  }
-
-  if (config.dryRun !== undefined && typeof config.dryRun !== 'boolean') {
-    throw new Error('cleanup.dryRun must be a boolean')
-  }
-
   if (config.pattern && typeof config.pattern !== 'string') {
     throw new Error('cleanup.pattern must be a string')
   }
@@ -154,6 +142,19 @@ function validateCleanupConfig(config: CleanupConfig): void {
  * Validate and normalize configuration
  */
 export function validateConfig(config: ToolConfig): void {
+  // Validate root-level options that apply to both modes
+  if (config.backup !== undefined && typeof config.backup !== 'boolean') {
+    throw new Error('backup must be a boolean')
+  }
+
+  if (config.verbose !== undefined && typeof config.verbose !== 'boolean') {
+    throw new Error('verbose must be a boolean')
+  }
+
+  if (config.dryRun !== undefined && typeof config.dryRun !== 'boolean') {
+    throw new Error('dryRun must be a boolean')
+  }
+
   if (config.extract) {
     validateExtractConfig(config.extract)
   }
@@ -175,6 +176,9 @@ export function mergeWithDefaults(config: ToolConfig): Required<ToolConfig> {
   return {
     translationFile: config.translationFile || DEFAULT_CONFIG.translationFile,
     srcPath: config.srcPath || DEFAULT_CONFIG.srcPath,
+    backup: config.backup !== undefined ? config.backup : DEFAULT_CONFIG.backup,
+    verbose: config.verbose !== undefined ? config.verbose : DEFAULT_CONFIG.verbose,
+    dryRun: config.dryRun !== undefined ? config.dryRun : DEFAULT_CONFIG.dryRun,
     extract: {
       ...DEFAULT_CONFIG.extract,
       ...config.extract,

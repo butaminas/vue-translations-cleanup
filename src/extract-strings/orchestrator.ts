@@ -188,7 +188,7 @@ export async function runExtraction(options: ExtractOptions): Promise<ExtractRes
 
     // Replace strings in each file
     for (const [file, locations] of locationsByFile) {
-      const createBackup = config.cleanup?.backup !== false
+      const createBackup = config.backup !== false
 
       try {
         const result = file.endsWith('.vue')
@@ -217,7 +217,7 @@ export async function runExtraction(options: ExtractOptions): Promise<ExtractRes
       translationFile,
       keyMap,
       extractConfig.targetLanguage || 'en',
-      config.cleanup?.backup !== false,
+      config.backup !== false,
     )
 
     if (verbose) {
@@ -240,7 +240,7 @@ export async function runExtraction(options: ExtractOptions): Promise<ExtractRes
             aiClient: aiClientForTranslation,
             sourceLanguage: extractConfig.targetLanguage || 'en',
             newKeys: keyMap,
-            backup: config.cleanup?.backup !== false,
+            backup: config.backup !== false,
             verbose,
           })
 

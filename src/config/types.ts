@@ -135,25 +135,7 @@ export interface AIConfig {
 
 export interface CleanupConfig {
   /**
-   * Create backup files before modifying
-   * @default true
-   */
-  backup?: boolean
-
-  /**
-   * Show detailed output
-   * @default false
-   */
-  verbose?: boolean
-
-  /**
-   * Preview changes without writing
-   * @default false
-   */
-  dryRun?: boolean
-
-  /**
-   * File pattern to scan
+   * File pattern to scan (cleanup mode specific)
    * @default '**\/*.{vue,js,ts,tsx,jsx}'
    */
   pattern?: string
@@ -171,6 +153,24 @@ export interface ToolConfig {
    * Optional - will auto-detect if not provided
    */
   srcPath?: string
+
+  /**
+   * Create backup files before modifying (applies to both cleanup and extract)
+   * @default true
+   */
+  backup?: boolean
+
+  /**
+   * Show detailed output (applies to both cleanup and extract)
+   * @default false
+   */
+  verbose?: boolean
+
+  /**
+   * Preview changes without writing (applies to both cleanup and extract)
+   * @default false
+   */
+  dryRun?: boolean
 
   /**
    * Extraction configuration
