@@ -155,7 +155,6 @@ function walkTemplateAST(
   if (node.type === 2) { // TextNode
     const textNode = node as TextNode
     const text = textNode.content
-
     const analysis = isLikelyTranslatable(text, minConfidence)
 
     if (analysis.translatable && confidenceLevels[analysis.confidence] >= confidenceLevels[minConfidence]) {
@@ -185,7 +184,7 @@ function walkTemplateAST(
     const element = node as ElementNode
 
     // Check attributes for translatable text
-    const includeAttributes = config.includeAttributes || ['placeholder', 'title', 'alt', 'label', 'aria-label', 'text']
+    const includeAttributes = config.includeAttributes || ['text', 'placeholder', 'title', 'alt', 'label', 'aria-label']
 
     for (const attr of element.props) {
       if (attr.type === 6) { // AttributeNode (static attribute)

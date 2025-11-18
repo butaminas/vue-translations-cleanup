@@ -10,7 +10,7 @@ export const DEFAULT_CONFIG: Required<ToolConfig> = {
     targetLanguage: 'en',
     confidence: 'high',
     i18nPatterns: [],
-    includeAttributes: ['placeholder', 'title', 'alt', 'label', 'aria-label', 'aria-placeholder'],
+    includeAttributes: ['text', 'placeholder', 'title', 'alt', 'label', 'aria-label'],
     excludePatterns: ['**/*.spec.ts', '**/*.test.ts', '**/*.spec.js', '**/*.test.js', '**/test/**', '**/__tests__/**'],
     keyFormat: 'snake_case',
     maxKeyLength: 50,
