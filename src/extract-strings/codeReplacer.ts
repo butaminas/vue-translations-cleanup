@@ -295,8 +295,9 @@ export function updateTranslationFile(
 
   // Add new keys
   for (const [text, key] of keyMap) {
-    // Support nested keys (dot notation)
-    const keyParts = key.split(/[._]/)
+    // Support nested keys (dot notation only - dots indicate hierarchy)
+    // Underscores, camelCase, and kebab-case are part of the key name itself
+    const keyParts = key.split('.')
 
     let current = translations
     for (let i = 0; i < keyParts.length - 1; i++) {

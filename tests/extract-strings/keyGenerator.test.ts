@@ -20,8 +20,8 @@ describe('keyGenerator', () => {
 
       const key = generateKey('Hello World', location, config)
 
-      expect(key).toMatch(/^test_component/)
-      expect(key).toContain('hello_world')
+      // Should use dot notation for hierarchy: component.key
+      expect(key).toBe('test_component.hello_world')
     })
 
     it('should generate camelCase key', () => {
@@ -30,7 +30,8 @@ describe('keyGenerator', () => {
 
       const key = generateKey('Hello World', location, config)
 
-      expect(key).toContain('helloWorld')
+      // Should use dot notation for hierarchy: component.key (with camelCase parts)
+      expect(key).toBe('testComponent.helloWorld')
     })
 
     it('should generate kebab-case key', () => {
@@ -39,7 +40,8 @@ describe('keyGenerator', () => {
 
       const key = generateKey('Hello World', location, config)
 
-      expect(key).toContain('hello-world')
+      // Should use dot notation for hierarchy: component.key (with kebab-case parts)
+      expect(key).toBe('test-component.hello-world')
     })
 
     it('should generate dot.case key', () => {
@@ -48,9 +50,8 @@ describe('keyGenerator', () => {
 
       const key = generateKey('Hello World', location, config)
 
-      expect(key).toContain('.')
-      expect(key).toContain('hello')
-      expect(key).toContain('world')
+      // Should use dot notation for hierarchy: component.key (with dot.case parts)
+      expect(key).toBe('test.component.hello.world')
     })
 
     it('should include component prefix', () => {
@@ -62,10 +63,11 @@ describe('keyGenerator', () => {
 
       const key = generateKey('Submit', location, config)
 
-      expect(key).toContain('login_form')
+      // Should use dot notation: component.key
+      expect(key).toBe('login_form.submit')
     })
 
-    it('should include attribute context', () => {
+    it('should NOT include attribute name in key path', () => {
       const location = createLocation({
         text: 'Enter your name',
         context: 'attribute',
@@ -76,8 +78,9 @@ describe('keyGenerator', () => {
 
       const key = generateKey('Enter your name', location, config)
 
-      expect(key).toContain('user_form')
-      expect(key).toContain('placeholder')
+      // Attribute name should NOT be part of the key path
+      expect(key).toBe('user_form.enter_your_name')
+      expect(key).not.toContain('placeholder')
     })
 
     it('should truncate long keys', () => {
@@ -94,11 +97,12 @@ describe('keyGenerator', () => {
     it('should handle duplicate keys by adding suffix', () => {
       const location = createLocation({ text: 'Submit' })
       const config = {}
-      const existingKeys = new Set(['test_component_submit'])
+      const existingKeys = new Set(['test_component.submit'])
 
       const key = generateKey('Submit', location, config, existingKeys)
 
-      expect(key).toMatch(/test_component_submit_\d+/)
+      // Should add numeric suffix: test_component.submit_2
+      expect(key).toBe('test_component.submit_2')
     })
 
     it('should handle special characters in text', () => {

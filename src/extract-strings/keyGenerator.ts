@@ -68,8 +68,8 @@ function truncateKey(key: string, maxLength: number, format: ExtractConfig['keyF
 /**
  * Infer a hierarchical prefix from file path and context
  */
-function inferPrefix(location: RawStringLocation): string | null {
-  const { file, context, attributeName } = location
+function inferPrefix(location: RawStringLocation, format: ExtractConfig['keyFormat'] = 'snake_case'): string | null {
+  const { file } = location
 
   // Extract component name from file path
   const fileName = file.split('/').pop()?.replace(/\.(vue|ts|js|tsx|jsx)$/, '')
@@ -78,16 +78,16 @@ function inferPrefix(location: RawStringLocation): string | null {
     return null
   }
 
-  // Convert component name to key format
-  const componentKey = fileName
-    .replace(/([A-Z])/g, '_$1')
+  // Convert component name to the configured key format
+  const words = fileName
+    .replace(/([A-Z])/g, ' $1')
+    .trim()
     .toLowerCase()
-    .replace(/^_/, '')
+    .split(/[\s_-]+/)
+    .filter(Boolean)
 
-  // Add context-specific prefix
-  if (context === 'attribute' && attributeName) {
-    return `${componentKey}.${attributeName}`
-  }
+  // Format according to keyFormat
+  const componentKey = formatKey(words.join(' '), format)
 
   return componentKey
 }
@@ -108,10 +108,11 @@ export function generateKey(
   let key = formatKey(text, format)
 
   // Add hierarchical prefix if applicable
-  const prefix = inferPrefix(location)
+  const prefix = inferPrefix(location, format)
   if (prefix && !key.startsWith(prefix)) {
-    const separator = format === 'dot.case' ? '.' : '_'
-    key = `${prefix}${separator}${key}`
+    // Always use dot notation for hierarchical structure
+    // The individual parts (prefix and key) are already formatted according to keyFormat
+    key = `${prefix}.${key}`
   }
 
   // Truncate if needed
@@ -122,11 +123,12 @@ export function generateKey(
   // Handle duplicates by adding suffix
   if (existingKeys.has(key)) {
     let counter = 2
-    let uniqueKey = `${key}_${counter}`
+    const separator = format === 'camelCase' ? '' : format === 'kebab-case' ? '-' : '_'
+    let uniqueKey = format === 'camelCase' ? `${key}${counter}` : `${key}${separator}${counter}`
 
     while (existingKeys.has(uniqueKey)) {
       counter++
-      uniqueKey = `${key}_${counter}`
+      uniqueKey = format === 'camelCase' ? `${key}${counter}` : `${key}${separator}${counter}`
     }
 
     key = uniqueKey
@@ -166,11 +168,12 @@ export function suggestBetterKey(
   reason: string
 } {
   const baseKey = generateKey(text, location, config)
+  const format = config.keyFormat || 'snake_case'
 
   // Prioritize attribute context first
   if (location.context === 'attribute') {
     if (location.attributeName === 'placeholder') {
-      const prefix = inferPrefix(location) || 'form'
+      const prefix = inferPrefix(location, format) || 'form'
       return {
         key: `${prefix}.placeholder`,
         reason: 'Form placeholder detected',
@@ -178,7 +181,7 @@ export function suggestBetterKey(
     }
 
     if (location.attributeName === 'title') {
-      const prefix = inferPrefix(location) || 'tooltip'
+      const prefix = inferPrefix(location, format) || 'tooltip'
       return {
         key: `${prefix}.title`,
         reason: 'Tooltip title detected',
@@ -191,7 +194,7 @@ export function suggestBetterKey(
 
   // Error messages
   if (lowerText.includes('error') || lowerText.includes('failed') || lowerText.includes('invalid')) {
-    const prefix = inferPrefix(location) || 'error'
+    const prefix = inferPrefix(location, format) || 'error'
     return {
       key: `${prefix}.${formatKey(text, config.keyFormat)}`,
       reason: 'Error message detected',
@@ -200,7 +203,7 @@ export function suggestBetterKey(
 
   // Success messages
   if (lowerText.includes('success') || lowerText.includes('completed') || lowerText.includes('saved')) {
-    const prefix = inferPrefix(location) || 'success'
+    const prefix = inferPrefix(location, format) || 'success'
     return {
       key: `${prefix}.${formatKey(text, config.keyFormat)}`,
       reason: 'Success message detected',
@@ -210,7 +213,7 @@ export function suggestBetterKey(
   // Button text
   if (/^(click|submit|save|cancel|delete|edit|add|create|update)\b/i.test(text)) {
     const action = text.split(/\s+/)[0].toLowerCase()
-    const prefix = inferPrefix(location) || 'button'
+    const prefix = inferPrefix(location, format) || 'button'
     return {
       key: `${prefix}.${action}`,
       reason: 'Action button detected',
