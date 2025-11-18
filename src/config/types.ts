@@ -10,10 +10,16 @@ export interface I18nCustomPattern {
    */
   functionName: string
   /**
-   * Template for importing/injecting i18n in new files
-   * e.g., "const { t } = useI18n()"
+   * Template for importing/injecting i18n in new files (the usage pattern)
+   * e.g., "const { t } = useI18n()" or "const { i18n: { t } } = injectContext()"
    */
   importTemplate: string
+  /**
+   * The import statement that makes the i18n function available
+   * e.g., "import { useI18n } from 'vue-i18n'" or "import { injectContext } from '@/plugins/context'"
+   * If provided, this will be added to files when injecting i18n
+   */
+  importStatement?: string
   /**
    * Optional: Where to inject the import (top of script, inside setup, etc.)
    */
