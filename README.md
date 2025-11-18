@@ -1,7 +1,7 @@
 # vue-translations-cleanup
 
 [![npm version](https://img.shields.io/npm/v/vue-translations-cleanup.svg)](https://www.npmjs.com/package/vue-translations-cleanup)
-[![License](https://img.shields.io/npm/l/vue-translations-cleanup.svg)](https://github.com/yourusername/vue-translations-cleanup/blob/main/LICENSE)
+[![License](https://img.shields.io/npm/l/vue-translations-cleanup.svg)](https://github.com/butaminas/vue-translations-cleanup/blob/main/LICENSE)
 [![Vue 3](https://img.shields.io/badge/Vue-3.x-brightgreen?logo=vue.js)](https://vuejs.org/)
 [![Nuxt 3/4](https://img.shields.io/badge/Nuxt-3%20%7C%204-00DC82?logo=nuxt.js)](https://nuxt.com/)
 
@@ -140,4 +140,4 @@ Contributions are welcome! Please see [CONTRIBUTING.md](./CONTRIBUTING.md) for g
 
 ## License
 
-MIT © [Mindaugas Kristutis](https://github.com/yourusername)
+MIT © [Mindaugas Kristutis](https://github.com/butaminas)
