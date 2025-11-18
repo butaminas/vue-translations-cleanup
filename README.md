@@ -8,7 +8,7 @@
 A powerful CLI tool for Vue.js and Nuxt i18n projects:
 - 🧹 **Cleanup Mode**: Remove unused translation keys
 - 🔍 **Extract Mode**: Convert raw strings to i18n automatically
-- 🤖 **AI-Powered**: Smart key generation and auto-translation (optional)
+- 🤖 **AI-Powered**: Auto-translate to multiple languages (optional)
 
 ## Quick Start
 
@@ -37,9 +37,8 @@ npx vue-translations-cleanup --extract -t ./locales/en.json -s ./src
 ✅ Generates semantic translation keys
 ✅ Replaces strings with i18n calls
 ✅ Auto-injects imports when needed
-✅ AI-powered features (optional):
-  - Context-aware key naming
-  - Auto-translate to multiple languages
+✅ AI-powered auto-translation (optional):
+  - Translate extracted keys to multiple languages
   - Local (Ollama) or cloud (Claude, GPT) LLMs
 
 ## Examples
