@@ -18,12 +18,6 @@ const config: ToolConfig = {
     // Target language for extracted strings
     targetLanguage: 'en',
 
-    // Minimum confidence level for detecting translatable strings
-    // 'high' = strict (fewer false positives)
-    // 'medium' = balanced
-    // 'low' = permissive (more detections, more false positives)
-    confidence: 'high',
-
     // Key naming format
     keyFormat: 'snake_case', // or 'camelCase', 'kebab-case', 'dot.case'
 

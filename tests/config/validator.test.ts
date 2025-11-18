@@ -38,16 +38,6 @@ describe('config/validator', () => {
     })
 
     describe('extract validation', () => {
-      it('should reject invalid confidence level', () => {
-        const config: ToolConfig = {
-          extract: {
-            confidence: 'invalid' as any,
-          },
-        }
-
-        expect(() => validateConfig(config)).toThrow('confidence must be one of')
-      })
-
       it('should reject invalid keyFormat', () => {
         const config: ToolConfig = {
           extract: {
@@ -392,7 +382,6 @@ describe('config/validator', () => {
 
     it('should have sensible extract defaults', () => {
       expect(DEFAULT_CONFIG.extract.targetLanguage).toBe('en')
-      expect(DEFAULT_CONFIG.extract.confidence).toBe('high')
       expect(DEFAULT_CONFIG.extract.keyFormat).toBe('snake_case')
       expect(DEFAULT_CONFIG.extract.maxKeyLength).toBe(50)
       expect(DEFAULT_CONFIG.extract.interactive).toBe(false)

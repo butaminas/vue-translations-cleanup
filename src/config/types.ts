@@ -34,12 +34,6 @@ export interface ExtractConfig {
   targetLanguage?: string
 
   /**
-   * Minimum confidence level for string detection
-   * @default 'high'
-   */
-  confidence?: 'high' | 'medium' | 'low'
-
-  /**
    * Custom i18n patterns to detect
    * Useful for project-specific i18n setups
    */

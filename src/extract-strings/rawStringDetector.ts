@@ -5,9 +5,30 @@ import type { ExtractConfig } from '../config/types'
 import type { RawStringLocation } from './types'
 
 /**
+ * Common UI words that should always be considered translatable
+ * These are words commonly used in buttons, labels, and UI elements
+ */
+const COMMON_UI_WORDS = new Set([
+  // Actions
+  'save', 'cancel', 'submit', 'delete', 'remove', 'edit', 'update', 'create', 'add',
+  'close', 'open', 'back', 'next', 'previous', 'finish', 'done', 'apply', 'reset',
+  'search', 'filter', 'sort', 'clear', 'refresh', 'reload', 'export', 'import',
+  'upload', 'download', 'print', 'share', 'copy', 'paste', 'cut', 'undo', 'redo',
+  'yes', 'no', 'ok', 'okay', 'confirm', 'continue', 'skip', 'retry', 'help',
+  // Form labels
+  'name', 'email', 'password', 'username', 'phone', 'address', 'city', 'country',
+  'description', 'title', 'message', 'comment', 'notes', 'subject', 'category',
+  'status', 'type', 'date', 'time', 'price', 'amount', 'quantity', 'total',
+  // UI elements
+  'label', 'placeholder', 'loading', 'error', 'warning', 'success', 'info',
+  'required', 'optional', 'disabled', 'enabled', 'active', 'inactive',
+  'welcome', 'hello', 'goodbye', 'thanks', 'please', 'sorry',
+])
+
+/**
  * Heuristics to determine if a string is likely translatable
  */
-function isLikelyTranslatable(text: string, confidence: ExtractConfig['confidence'] = 'high', config?: ExtractConfig): {
+function isLikelyTranslatable(text: string, config?: ExtractConfig): {
   translatable: boolean
   confidence: 'high' | 'medium' | 'low'
   reason?: string
@@ -84,14 +105,23 @@ function isLikelyTranslatable(text: string, confidence: ExtractConfig['confidenc
 
   // Single words without spaces
   if (!/\s/.test(trimmed) && trimmed.length < 15) {
+    const lowerTrimmed = trimmed.toLowerCase()
+
+    // Check if it's a common UI word (case-insensitive)
+    if (COMMON_UI_WORDS.has(lowerTrimmed)) {
+      return { translatable: true, confidence: 'high', reason: 'common UI word' }
+    }
+
     // Allow normal capitalized words (UI labels like "Save", "Cancel", "Edit")
     if (/^[A-Z][a-z]+$/.test(trimmed) && trimmed.length >= 3) {
-      return { translatable: true, confidence: 'high' } // UI labels are clearly translatable
+      return { translatable: true, confidence: 'high', reason: 'capitalized UI label' }
     }
+
     // Filter out lowercase-only single words (variable names, CSS classes)
-    if (trimmed === trimmed.toLowerCase()) {
-      return { translatable: false, confidence: 'medium', reason: 'lowercase single word' }
+    if (trimmed === lowerTrimmed) {
+      return { translatable: false, confidence: 'medium', reason: 'lowercase single word (not in UI word list)' }
     }
+
     // Other short single words - probably not translatable
     return { translatable: false, confidence: 'low', reason: 'single short word' }
   }
@@ -166,16 +196,13 @@ function walkTemplateAST(
   config: ExtractConfig,
   results: RawStringLocation[],
 ): void {
-  const minConfidence = config.confidence || 'high'
-  const confidenceLevels = { high: 3, medium: 2, low: 1 }
-
   // Handle text nodes
   if (node.type === 2) { // TextNode
     const textNode = node as TextNode
     const text = textNode.content
-    const analysis = isLikelyTranslatable(text, minConfidence, config)
+    const analysis = isLikelyTranslatable(text, config)
 
-    if (analysis.translatable && confidenceLevels[analysis.confidence] >= confidenceLevels[minConfidence]) {
+    if (analysis.translatable) {
       results.push({
         text: text.trim(),
         file: filePath,
@@ -212,9 +239,9 @@ function walkTemplateAST(
         if (includeAttributes.includes(attrNode.name)) {
           const value = attrNode.value?.content
           if (value) {
-            const analysis = isLikelyTranslatable(value, minConfidence, config)
+            const analysis = isLikelyTranslatable(value, config)
 
-            if (analysis.translatable && confidenceLevels[analysis.confidence] >= confidenceLevels[minConfidence]) {
+            if (analysis.translatable) {
               results.push({
                 text: value.trim(),
                 file: filePath,
@@ -249,8 +276,6 @@ function extractFromScript(
   config: ExtractConfig,
 ): RawStringLocation[] {
   const results: RawStringLocation[] = []
-  const minConfidence = config.confidence || 'high'
-  const confidenceLevels = { high: 3, medium: 2, low: 1 }
 
   // Extract string literals (simple approach)
   // Match strings that are not in i18n function calls
@@ -268,9 +293,9 @@ function extractFromScript(
       continue
     }
 
-    const analysis = isLikelyTranslatable(text, minConfidence, config)
+    const analysis = isLikelyTranslatable(text, config)
 
-    if (analysis.translatable && confidenceLevels[analysis.confidence] >= confidenceLevels[minConfidence]) {
+    if (analysis.translatable) {
       const beforeMatchFull = scriptContent.substring(0, match.index)
       const lines = beforeMatchFull.split('\n')
       const line = lines.length

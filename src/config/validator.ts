@@ -11,7 +11,6 @@ export const DEFAULT_CONFIG: Required<ToolConfig> = {
   dryRun: false,
   extract: {
     targetLanguage: 'en',
-    confidence: 'high',
     i18nPatterns: [],
     includeAttributes: ['text', 'placeholder', 'title', 'alt', 'label', 'aria-label', 'aria-placeholder', 'aria-roledescription', 'aria-valuetext', 'confirm-text'],
     excludePatterns: ['**/*.spec.ts', '**/*.test.ts', '**/*.spec.js', '**/*.test.js', '**/test/**', '**/__tests__/**'],
@@ -67,10 +66,6 @@ function validateI18nPattern(pattern: I18nCustomPattern, index: number): void {
  * Validate extract configuration
  */
 function validateExtractConfig(config: ExtractConfig): void {
-  if (config.confidence && !['high', 'medium', 'low'].includes(config.confidence)) {
-    throw new Error('extract.confidence must be one of: high, medium, low')
-  }
-
   if (config.keyFormat && !['snake_case', 'camelCase', 'kebab-case', 'dot.case'].includes(config.keyFormat)) {
     throw new Error('extract.keyFormat must be one of: snake_case, camelCase, kebab-case, dot.case')
   }
