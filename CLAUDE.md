@@ -315,6 +315,9 @@ Auto-detects existing i18n usage patterns in the codebase.
 - Counts pattern occurrences
 - Recommends most common pattern
 - Supports custom patterns from config
+- **NEW**: Detects import statements (e.g., `import { useI18n } from 'vue-i18n'`)
+- **NEW**: Config-first approach for custom patterns (explicit `importStatement` in config takes precedence)
+- **NEW**: Auto-detection fallback (scans code if no explicit import provided)
 
 #### 7. extract-strings/rawStringDetector.ts
 Finds raw translatable strings using AST parsing and heuristics.
@@ -365,6 +368,10 @@ Replaces raw strings with i18n function calls.
 - Adds `const { t } = useI18n()` for Vue SFC setup scripts
 - Adds appropriate import for plain TS/JS files
 - Respects custom i18n patterns from detection
+- **NEW**: Injects both import statement and usage pattern
+- **NEW**: Adds blank line between import and usage for clean formatting
+- **NEW**: Handles files without existing script section (creates new `<script setup>`)
+- **NEW**: Smart insertion (after other imports, before component logic)
 
 **Translation File Updates**:
 - Creates nested structure from dot notation
@@ -636,6 +643,23 @@ interface RawStringLocation {
   confidence: 'high' | 'medium' | 'low'
 }
 ```
+
+**I18nCustomPattern** (NEW - config/types.ts):
+```typescript
+interface I18nCustomPattern {
+  pattern: RegExp | string              // Pattern to detect in existing code
+  functionName: string                  // Translation function name (e.g., 't')
+  importTemplate: string                // Usage pattern to inject (e.g., 'const { t } = useI18n()')
+  importStatement?: string              // Import statement to add (e.g., "import { useI18n } from 'vue-i18n'")
+  injectLocation?: 'script-setup' | 'script-top' | 'composable'
+}
+```
+
+**How importStatement works**:
+- **Config-first**: If `importStatement` is provided in config, it's used explicitly
+- **Auto-detection**: If not provided, the tool scans existing files to detect the import
+- **Injection**: When extracting strings, both the import and usage pattern are added to files
+- **Blank line**: A blank line is automatically added between the import and usage pattern
 
 ## Coding Conventions
 

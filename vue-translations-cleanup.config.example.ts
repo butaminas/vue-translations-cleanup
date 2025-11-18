@@ -61,11 +61,12 @@ const config: ToolConfig = {
         importTemplate: 'const { t } = useI18n()',
         injectLocation: 'script-setup',
       },
-      // Custom example: injectContext pattern
+      // Custom example: injectContext pattern with import statement
       // {
       //   pattern: /const\s*{\s*i18n:\s*{\s*t\s*}\s*}\s*=\s*injectContext\(\)/,
       //   functionName: 't',
       //   importTemplate: 'const { i18n: { t } } = injectContext()',
+      //   importStatement: "import { injectContext } from '@/plugins/context'",
       //   injectLocation: 'script-setup',
       // },
     ],

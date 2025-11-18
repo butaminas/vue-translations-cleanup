@@ -152,7 +152,7 @@ function addI18nImport(
   }
 
   // Add blank line before usage if we added an import
-  if (importStatement && isSetup && importInsertIndex > 0) {
+  if (importStatement) {
     lines.splice(usageInsertIndex, 0, '')
     usageInsertIndex++
   }

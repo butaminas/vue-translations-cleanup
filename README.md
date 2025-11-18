@@ -170,6 +170,62 @@ export default {
 
 See [full configuration reference](https://butaminas.github.io/vue-translations-cleanup/guide/config-file) in the documentation.
 
+### Custom i18n Patterns
+
+If your project uses custom i18n patterns, you can configure them using the `i18nPatterns` option:
+
+```typescript
+// vue-translations-cleanup.config.ts
+export default {
+  extract: {
+    i18nPatterns: [
+      {
+        // The pattern to detect in existing code
+        pattern: /const\s*{\s*i18n:\s*{\s*t\s*}\s*}\s*=\s*injectContext\(\)/,
+
+        // The function name used for translations
+        functionName: 't',
+
+        // The usage pattern to inject (how to destructure the function)
+        importTemplate: 'const { i18n: { t } } = injectContext()',
+
+        // The import statement to add at the top of the file
+        importStatement: "import { injectContext } from '@/plugins/context'",
+
+        // Where to inject the code
+        injectLocation: 'script-setup',
+      }
+    ]
+  }
+}
+```
+
+**How it works:**
+1. **Auto-detection**: The tool scans your codebase using the `pattern` to find existing i18n usage
+2. **Config-first approach**: If you provide `importStatement`, it uses that value explicitly
+3. **Fallback**: If no `importStatement` is provided, the tool tries to auto-detect the import from your code
+4. **Injection**: When extracting strings, it adds both the import and usage pattern to files that need it
+
+**Before extraction:**
+```vue
+<template>
+  <div>Welcome</div>
+</template>
+```
+
+**After extraction (with custom pattern):**
+```vue
+<template>
+  <div>{{ t('welcome') }}</div>
+</template>
+
+<script setup>
+import { injectContext } from '@/plugins/context'
+
+const { i18n: { t } } = injectContext()
+</script>
+```
+
 ## CLI Options
 
 ```bash
