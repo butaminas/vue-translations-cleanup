@@ -7,7 +7,7 @@ import type { RawStringLocation } from './types'
 /**
  * Heuristics to determine if a string is likely translatable
  */
-function isLikelyTranslatable(text: string, confidence: ExtractConfig['confidence'] = 'high'): {
+function isLikelyTranslatable(text: string, confidence: ExtractConfig['confidence'] = 'high', config?: ExtractConfig): {
   translatable: boolean
   confidence: 'high' | 'medium' | 'low'
   reason?: string
@@ -22,6 +22,24 @@ function isLikelyTranslatable(text: string, confidence: ExtractConfig['confidenc
   // Very short strings (single characters, etc.)
   if (trimmed.length < 2) {
     return { translatable: false, confidence: 'high', reason: 'too short' }
+  }
+
+  // Check user-provided ignore list (exact matches)
+  if (config?.ignoreText && config.ignoreText.includes(trimmed)) {
+    return { translatable: false, confidence: 'high', reason: 'in ignoreText list' }
+  }
+
+  // Check user-provided ignore pattern (regex)
+  if (config?.ignorePattern) {
+    try {
+      const ignoreRegex = new RegExp(config.ignorePattern)
+      if (ignoreRegex.test(trimmed)) {
+        return { translatable: false, confidence: 'high', reason: 'matches ignorePattern' }
+      }
+    }
+    catch (error) {
+      console.warn(`Warning: Invalid ignorePattern regex: ${config.ignorePattern}`)
+    }
   }
 
   // Numbers only
@@ -155,7 +173,7 @@ function walkTemplateAST(
   if (node.type === 2) { // TextNode
     const textNode = node as TextNode
     const text = textNode.content
-    const analysis = isLikelyTranslatable(text, minConfidence)
+    const analysis = isLikelyTranslatable(text, minConfidence, config)
 
     if (analysis.translatable && confidenceLevels[analysis.confidence] >= confidenceLevels[minConfidence]) {
       results.push({
@@ -194,7 +212,7 @@ function walkTemplateAST(
         if (includeAttributes.includes(attrNode.name)) {
           const value = attrNode.value?.content
           if (value) {
-            const analysis = isLikelyTranslatable(value, minConfidence)
+            const analysis = isLikelyTranslatable(value, minConfidence, config)
 
             if (analysis.translatable && confidenceLevels[analysis.confidence] >= confidenceLevels[minConfidence]) {
               results.push({
@@ -250,7 +268,7 @@ function extractFromScript(
       continue
     }
 
-    const analysis = isLikelyTranslatable(text, minConfidence)
+    const analysis = isLikelyTranslatable(text, minConfidence, config)
 
     if (analysis.translatable && confidenceLevels[analysis.confidence] >= confidenceLevels[minConfidence]) {
       const beforeMatchFull = scriptContent.substring(0, match.index)

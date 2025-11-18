@@ -68,6 +68,18 @@ export interface ExtractConfig {
    * @default false
    */
   interactive?: boolean
+
+  /**
+   * Regex pattern to ignore matching strings (e.g., icon names, symbols)
+   * Example: '^(mdi-.*|[-#:()&]+)$' to ignore Material Design Icons and symbol-only strings
+   */
+  ignorePattern?: string
+
+  /**
+   * Specific strings to ignore (e.g., currency codes, keyboard keys, punctuation)
+   * Example: ['EUR', 'USD', 'Shift', 'Esc', '(', ')', '.', ',']
+   */
+  ignoreText?: string[]
 }
 
 export interface AIConfig {

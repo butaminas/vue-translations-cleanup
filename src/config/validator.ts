@@ -10,11 +10,14 @@ export const DEFAULT_CONFIG: Required<ToolConfig> = {
     targetLanguage: 'en',
     confidence: 'high',
     i18nPatterns: [],
-    includeAttributes: ['text', 'placeholder', 'title', 'alt', 'label', 'aria-label'],
+    includeAttributes: ['text', 'placeholder', 'title', 'alt', 'label', 'aria-label', 'aria-placeholder', 'aria-roledescription', 'aria-valuetext', 'confirm-text'],
     excludePatterns: ['**/*.spec.ts', '**/*.test.ts', '**/*.spec.js', '**/*.test.js', '**/test/**', '**/__tests__/**'],
     keyFormat: 'snake_case',
     maxKeyLength: 50,
     interactive: false,
+    // Based on vue-i18n ESLint plugin best practices
+    ignorePattern: '^(mdi-.*|fa-.*|icon-.*|[-#:()&]+)$',
+    ignoreText: ['EUR', 'USD', 'GBP', 'HKD', 'Shift', 'Esc', 'esc', 'Enter', 'Tab', 'Space', '404', '(', ')', ',', '.', '&', '+', '-', '=', '*', '/', '#', '%', '!', '?', ':', '[', ']', '{', '}', '<', '>', '|'],
   },
   ai: {
     enabled: false,
@@ -89,6 +92,19 @@ function validateExtractConfig(config: ExtractConfig): void {
 
   if (config.excludePatterns && !Array.isArray(config.excludePatterns)) {
     throw new Error('extract.excludePatterns must be an array of strings')
+  }
+
+  if (config.ignorePattern && typeof config.ignorePattern !== 'string') {
+    throw new Error('extract.ignorePattern must be a string (regex pattern)')
+  }
+
+  if (config.ignoreText) {
+    if (!Array.isArray(config.ignoreText)) {
+      throw new Error('extract.ignoreText must be an array of strings')
+    }
+    if (!config.ignoreText.every(item => typeof item === 'string')) {
+      throw new Error('extract.ignoreText must contain only strings')
+    }
   }
 }
 
@@ -166,6 +182,8 @@ export function mergeWithDefaults(config: ToolConfig): Required<ToolConfig> {
       i18nPatterns: config.extract?.i18nPatterns || DEFAULT_CONFIG.extract.i18nPatterns,
       includeAttributes: config.extract?.includeAttributes || DEFAULT_CONFIG.extract.includeAttributes,
       excludePatterns: config.extract?.excludePatterns || DEFAULT_CONFIG.extract.excludePatterns,
+      ignoreText: config.extract?.ignoreText || DEFAULT_CONFIG.extract.ignoreText,
+      ignorePattern: config.extract?.ignorePattern || DEFAULT_CONFIG.extract.ignorePattern,
     },
     ai: {
       ...DEFAULT_CONFIG.ai,
