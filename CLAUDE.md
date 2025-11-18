@@ -23,8 +23,8 @@ It primarily targets vue-i18n (Intlify) and @nuxtjs/i18n but may work with compa
 
 **Extract Mode** (NEW):
 - Detect raw translatable strings in templates and scripts
-- AI-powered translation key generation (optional)
 - Heuristic-based key generation with semantic naming
+- AI-powered auto-translation to multiple languages (optional)
 - Automatic code replacement with i18n function calls
 - Auto-inject i18n imports when needed
 - Update translation JSON files with new keys
@@ -166,8 +166,7 @@ yarn test
 - Vue template directives and components
 - **NEW**: String extraction pipeline (84 tests)
 - **NEW**: Config file loading and validation (49 tests)
-- **NEW**: AI-powered key generation and translation (19 tests)
-- **NEW**: Auto-translation to multiple languages (7 tests)
+- **NEW**: AI client and auto-translation (19 tests)
 
 **Total**: 176 tests, all passing
 
@@ -407,7 +406,6 @@ Validates configuration and merges with defaults.
 {
   extract: {
     targetLanguage: 'en',
-    confidence: 'high',
     keyFormat: 'snake_case',
     maxKeyLength: 50,
     includeAttributes: ['placeholder', 'title', 'alt', 'label', 'aria-label'],
@@ -428,7 +426,7 @@ Validates configuration and merges with defaults.
 ### AI Integration (NEW)
 
 #### 12. ai/client.ts
-LLM client for AI-powered key generation.
+LLM client for AI-powered translation.
 
 **Supported Providers**:
 - **Local**: Ollama, LM Studio, LocalAI
@@ -441,14 +439,13 @@ LLM client for AI-powered key generation.
 - OpenAI: `https://api.openai.com`
 
 **Features**:
-- Context-aware prompts (file path, component name, nearby code)
+- Translation to multiple languages
 - JSON response parsing with fallback
 - Timeout handling with AbortController
 - Connection testing
 - Confidence scoring
-- **NEW**: Translation to multiple languages
 
-**Key Generation Example**:
+**Translation Example**:
 ```typescript
 const client = new AIClient({
   enabled: true,
@@ -457,17 +454,6 @@ const client = new AIClient({
   timeout: 30000,
 })
 
-const result = await client.generateKey('Submit button', {
-  file: '/src/LoginForm.vue',
-  componentName: 'LoginForm',
-  attributeName: 'button',
-})
-// result.key: "login_form.button.submit"
-// result.confidence: 0.9
-```
-
-**Translation Example** (NEW):
-```typescript
 const result = await client.translateText('Hello {name}', 'de', {
   key: 'greeting',
   sourceLanguage: 'en',
@@ -610,13 +596,14 @@ interface ToolConfig {
 
 interface ExtractConfig {
   targetLanguage?: string          // default: 'en'
-  confidence?: 'high' | 'medium' | 'low'
   i18nPatterns?: I18nCustomPattern[]
   includeAttributes?: string[]
   excludePatterns?: string[]
   keyFormat?: 'snake_case' | 'camelCase' | 'kebab-case' | 'dot.case'
   maxKeyLength?: number
   interactive?: boolean
+  ignorePattern?: string           // Regex pattern to ignore strings
+  ignoreText?: string[]            // Exact strings to ignore
 }
 
 interface AIConfig {

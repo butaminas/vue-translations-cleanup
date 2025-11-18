@@ -155,14 +155,13 @@ Create `vue-translations-cleanup.config.ts` for advanced features:
 export default {
   extract: {
     targetLanguage: 'en',
-    confidence: 'high',
     keyFormat: 'snake_case',  // or 'camelCase', 'kebab-case', 'dot.case'
   },
   ai: {
     enabled: true,
     provider: 'ollama',
     model: 'codellama',
-    languages: ['de', 'fr'],  // Auto-translate
+    languages: ['de', 'fr'],  // Auto-translate to these languages
   },
 }
 ```
