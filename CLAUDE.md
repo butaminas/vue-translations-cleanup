@@ -528,6 +528,7 @@ CLI entry point with commander.js.
 - `-t, --translation-file <path>`: Translation file or directory (optional, auto-detected)
 - `-s, --src-path <path>`: Source files path (optional, auto-detected)
 - `-c, --config <path>`: **NEW**: Config file path
+- `--init`: **NEW**: Generate config file with detected settings
 - `--extract`: **NEW**: Enable extraction mode
 - `-n, --dry-run`: Preview changes without writing
 - `--no-backup`: Skip backup creation
@@ -535,10 +536,15 @@ CLI entry point with commander.js.
 - `-p, --pattern <glob>`: Custom file pattern (default: `**/*.{vue,js,ts}`)
 
 **Modes**:
-1. **Cleanup mode** (default): Remove unused translations
+1. **Init mode** (`--init`): Generate config file with auto-detected settings
+   - Detects translation file and source paths
+   - Scans codebase for existing i18n patterns
+   - Generates `vue-translations-cleanup.config.ts` with recommended settings
+   - Useful for initial project setup
+2. **Cleanup mode** (default): Remove unused translations
    - Single-file mode: Process one JSON file
    - Directory mode: Process all JSON files recursively
-2. **Extract mode** (NEW): Convert raw strings to i18n
+3. **Extract mode** (`--extract`): Convert raw strings to i18n
    - Requires a single translation file (not directory)
    - Runs full extraction pipeline
 
@@ -877,6 +883,9 @@ yarn release:patch        # Patch version bump
 yarn release:minor        # Minor version bump
 yarn release:major        # Major version bump
 yarn changelog            # Generate changelog
+
+# CLI Usage Examples - Init Mode
+npx vue-translations-cleanup --init                             # Generate config file
 
 # CLI Usage Examples - Cleanup Mode
 npx vue-translations-cleanup                                    # Auto-detect
