@@ -122,14 +122,23 @@ function addI18nImport(
   // Find the best place to insert the import and usage
   if (isSetup) {
     // For <script setup>, add import after other imports or at the beginning
-    for (let i = 0; i < lines.length; i++) {
+    // Start from index 1 if first line is empty (preserves newline after opening tag)
+    const startIndex = lines[0] === '' ? 1 : 0
+
+    for (let i = startIndex; i < lines.length; i++) {
       if (lines[i].trim().startsWith('import ')) {
         importInsertIndex = i + 1
       }
     }
+
+    // If no imports found, insert at start (after empty line if it exists)
+    if (importInsertIndex === 0) {
+      importInsertIndex = startIndex
+    }
+
     // Usage goes after imports (with a blank line if there are imports)
     usageInsertIndex = importInsertIndex
-    if (importInsertIndex > 0) {
+    if (importInsertIndex > startIndex) {
       usageInsertIndex++ // Add blank line after imports
     }
   }
