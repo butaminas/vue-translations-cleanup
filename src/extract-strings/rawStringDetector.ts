@@ -1,5 +1,6 @@
 import fs from 'node:fs'
 import { parse as parseVueSFC } from '@vue/compiler-sfc'
+import type { AttributeNode, ElementNode, InterpolationNode, SimpleExpressionNode, TemplateChildNode, TextNode } from '@vue/compiler-core'
 import type { ExtractConfig } from '../config/types'
 import type { RawStringLocation } from './types'
 
@@ -14,7 +15,7 @@ function isLikelyTranslatable(text: string, confidence: ExtractConfig['confidenc
   const trimmed = text.trim()
 
   // Empty or whitespace-only
-  if (!trimmed) {
+  if (!trimmed || /^[\r\n\s\t\f\v]+$/.test(text)) {
     return { translatable: false, confidence: 'high', reason: 'empty or whitespace' }
   }
 
@@ -67,7 +68,7 @@ function isLikelyTranslatable(text: string, confidence: ExtractConfig['confidenc
   if (!/\s/.test(trimmed) && trimmed.length < 15) {
     // Allow normal capitalized words (UI labels like "Save", "Cancel", "Edit")
     if (/^[A-Z][a-z]+$/.test(trimmed) && trimmed.length >= 3) {
-      return { translatable: true, confidence: 'high' }  // UI labels are clearly translatable
+      return { translatable: true, confidence: 'high' } // UI labels are clearly translatable
     }
     // Filter out lowercase-only single words (variable names, CSS classes)
     if (trimmed === trimmed.toLowerCase()) {
@@ -113,110 +114,113 @@ function isLikelyTranslatable(text: string, confidence: ExtractConfig['confidenc
 }
 
 /**
- * Check if text contains Vue interpolation or i18n calls
+ * Check if an expression is an i18n function call
  */
-function containsVueInterpolationOrI18n(text: string): boolean {
-  // Contains Vue interpolation {{ }}
-  if (/\{\{.*\}\}/.test(text)) {
-    return true
+function isI18nCall(expr: SimpleExpressionNode | InterpolationNode): boolean {
+  if (!expr || typeof expr === 'string')
+    return false
+
+  // For interpolations, check the content
+  if (expr.type === 5) { // InterpolationNode
+    const content = expr.content
+    if (content.type === 4) { // SimpleExpressionNode
+      const code = content.content
+      // Check if it's an i18n call: t(...), $t(...), etc.
+      return /^\s*\$?t\s*\(/.test(code)
+    }
   }
 
-  // Contains i18n function calls (very common patterns)
-  if (/\b\$?t\s*\(/.test(text)) {
-    return true
+  // For simple expressions, check the content directly
+  if (expr.type === 4) { // SimpleExpressionNode
+    const code = expr.content
+    return /^\s*\$?t\s*\(/.test(code)
   }
 
   return false
 }
 
 /**
- * Extract raw strings from Vue template
+ * Walk the template AST and extract raw text nodes
  */
-function extractFromTemplate(
-  templateContent: string,
+function walkTemplateAST(
+  node: TemplateChildNode | ElementNode,
   filePath: string,
   config: ExtractConfig,
-): RawStringLocation[] {
-  const results: RawStringLocation[] = []
+  results: RawStringLocation[],
+): void {
   const minConfidence = config.confidence || 'high'
   const confidenceLevels = { high: 3, medium: 2, low: 1 }
 
-  // Text between tags: >text<
-  // But exclude anything with Vue interpolations {{ }}
-  const textNodeRegex = />([^<]+)</g
-  let match: RegExpExecArray | null
-
-  while ((match = textNodeRegex.exec(templateContent)) !== null) {
-    const text = match[1]
-
-    // Skip if it contains Vue interpolation or i18n calls
-    if (containsVueInterpolationOrI18n(text)) {
-      continue
-    }
+  // Handle text nodes
+  if (node.type === 2) { // TextNode
+    const textNode = node as TextNode
+    const text = textNode.content
 
     const analysis = isLikelyTranslatable(text, minConfidence)
 
     if (analysis.translatable && confidenceLevels[analysis.confidence] >= confidenceLevels[minConfidence]) {
-      // Calculate approximate line/column (simplified)
-      const beforeMatch = templateContent.substring(0, match.index)
-      const lines = beforeMatch.split('\n')
-      const line = lines.length
-      const column = lines[lines.length - 1].length
-
       results.push({
         text: text.trim(),
         file: filePath,
-        line,
-        column,
+        line: textNode.loc.start.line,
+        column: textNode.loc.start.column,
         context: 'template',
         confidence: analysis.confidence,
       })
     }
   }
 
-  // Attribute values for specific attributes
-  const includeAttributes = config.includeAttributes || ['placeholder', 'title', 'alt', 'label', 'aria-label']
-
-  for (const attr of includeAttributes) {
-    // Match attribute="value" or attribute='value'
-    const attrRegex = new RegExp(`\\b${attr}=["']([^"']+)["']`, 'gi')
-
-    while ((match = attrRegex.exec(templateContent)) !== null) {
-      const text = match[1]
-
-      // Skip dynamic bindings (:attr or v-bind:attr)
-      const beforeMatch = templateContent.substring(Math.max(0, match.index - 10), match.index)
-      if (/:$/.test(beforeMatch.trim()) || /v-bind:$/.test(beforeMatch.trim())) {
-        continue
-      }
-
-      // Skip if contains interpolation or i18n calls
-      if (containsVueInterpolationOrI18n(text)) {
-        continue
-      }
-
-      const analysis = isLikelyTranslatable(text, minConfidence)
-
-      if (analysis.translatable && confidenceLevels[analysis.confidence] >= confidenceLevels[minConfidence]) {
-        const beforeMatch = templateContent.substring(0, match.index)
-        const lines = beforeMatch.split('\n')
-        const line = lines.length
-        const column = lines[lines.length - 1].length
-
-        results.push({
-          text: text.trim(),
-          file: filePath,
-          line,
-          column,
-          context: 'attribute',
-          attributeName: attr,
-          confidence: analysis.confidence,
-        })
-      }
+  // Handle interpolations - check if they're NOT i18n calls
+  if (node.type === 5) { // InterpolationNode
+    const interpNode = node as InterpolationNode
+    // Skip if it's an i18n call
+    if (!isI18nCall(interpNode)) {
+      // This is a variable reference like {{ someVar }}
+      // We don't extract these
     }
   }
 
-  return results
+  // Handle element nodes
+  if (node.type === 1) { // ElementNode
+    const element = node as ElementNode
+
+    // Check attributes for translatable text
+    const includeAttributes = config.includeAttributes || ['placeholder', 'title', 'alt', 'label', 'aria-label', 'text']
+
+    for (const attr of element.props) {
+      if (attr.type === 6) { // AttributeNode (static attribute)
+        const attrNode = attr as AttributeNode
+
+        // Only check configured attributes
+        if (includeAttributes.includes(attrNode.name)) {
+          const value = attrNode.value?.content
+          if (value) {
+            const analysis = isLikelyTranslatable(value, minConfidence)
+
+            if (analysis.translatable && confidenceLevels[analysis.confidence] >= confidenceLevels[minConfidence]) {
+              results.push({
+                text: value.trim(),
+                file: filePath,
+                line: attrNode.loc.start.line,
+                column: attrNode.loc.start.column,
+                context: 'attribute',
+                attributeName: attrNode.name,
+                confidence: analysis.confidence,
+              })
+            }
+          }
+        }
+      }
+      // Skip directives (type 7) - those are dynamic bindings like :title or v-bind:title
+    }
+
+    // Recursively walk child nodes
+    if (element.children) {
+      for (const child of element.children) {
+        walkTemplateAST(child, filePath, config, results)
+      }
+    }
+  }
 }
 
 /**
@@ -233,17 +237,15 @@ function extractFromScript(
 
   // Extract string literals (simple approach)
   // Match strings that are not in i18n function calls
-  // This is a simplified regex - for production, use proper AST parsing
-
   const stringRegex = /(['"`])(?:(?=(\\?))\2.)*?\1/g
   let match: RegExpExecArray | null
 
   while ((match = stringRegex.exec(scriptContent)) !== null) {
     const fullMatch = match[0]
-    const quote = match[1]
     const text = fullMatch.slice(1, -1) // Remove quotes
 
     // Skip if it's already in an i18n call
+    // Look back up to 50 chars to check for t( or $t(
     const beforeMatch = scriptContent.substring(Math.max(0, match.index - 50), match.index)
     if (/\bt\s*\(\s*$/.test(beforeMatch) || /\$t\s*\(\s*$/.test(beforeMatch)) {
       continue
@@ -272,7 +274,7 @@ function extractFromScript(
 }
 
 /**
- * Detect raw strings in a Vue file
+ * Detect raw strings in a Vue file using proper AST parsing
  */
 export function detectRawStringsInFile(
   filePath: string,
@@ -286,14 +288,14 @@ export function detectRawStringsInFile(
     try {
       const { descriptor } = parseVueSFC(content, { filename: filePath })
 
-      // Extract from template
+      // Extract from template using AST walking
       if (descriptor.template) {
-        const templateResults = extractFromTemplate(
-          descriptor.template.content,
-          filePath,
-          config,
-        )
-        results.push(...templateResults)
+        const templateAST = descriptor.template.ast
+        if (templateAST && templateAST.children) {
+          for (const child of templateAST.children) {
+            walkTemplateAST(child, filePath, config, results)
+          }
+        }
       }
 
       // Extract from script
