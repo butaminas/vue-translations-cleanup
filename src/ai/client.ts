@@ -330,26 +330,15 @@ Respond with JSON in this format:
     }
     const targetLangName = langNames[targetLanguage] || targetLanguage
 
-    return `You are a professional translator. Translate the following text from ${sourceLang} to ${targetLangName}.
+    return `Translate the following text from ${sourceLang} to ${targetLangName}.
 
-Text to translate: "${text}"
+Text: "${text}"
 
-Context:
-${context?.key ? `- Translation key: ${context.key}` : ''}
-${context?.category ? `- Category: ${context.category}` : ''}
+IMPORTANT: Respond with ONLY valid JSON, no additional text.
+Preserve any variables like {name} or {{count}} exactly.
 
-Requirements:
-- Preserve any HTML tags, variables, or placeholders exactly as they appear (e.g., {name}, {{count}}, <strong>, etc.)
-- Maintain the same tone and formality level
-- Use natural, idiomatic expressions in ${targetLangName}
-- Keep technical terms consistent
-- Preserve capitalization style (if all caps, keep all caps)
-
-Respond with JSON in this format:
-{
-  "translation": "your translation here",
-  "confidence": 0.95
-}`
+Response format:
+{"translation": "translated text here", "confidence": 0.95}`
   }
 
   /**
@@ -372,21 +361,53 @@ Respond with JSON in this format:
     catch (error) {
       console.warn('Failed to parse AI translation response, extracting text manually')
 
-      // Fallback: try to extract translation from response
-      const translationMatch = response.match(/["']?translation["']?\s*:\s*["']([^"']+)["']/)
-      if (translationMatch) {
+      // Fallback 1: Try to find translation in JSON-like format (even if malformed)
+      const translationJsonMatch = response.match(/["']?translation["']?\s*:\s*["']([^"']+)["']/)
+      if (translationJsonMatch) {
         return {
-          translation: translationMatch[1],
+          translation: translationJsonMatch[1],
           confidence: 0.3,
         }
       }
 
-      // Last resort: use the entire response as translation
-      const cleanedResponse = response.trim().replace(/^["']|["']$/g, '')
-      if (cleanedResponse.length > 0) {
+      // Fallback 2: Look for common patterns like "Translation: <text>"
+      const labeledMatch = response.match(/(?:translation|translated text|result)\s*:\s*["']?([^"'\n]+)["']?/i)
+      if (labeledMatch) {
         return {
-          translation: cleanedResponse,
+          translation: labeledMatch[1].trim(),
+          confidence: 0.25,
+        }
+      }
+
+      // Fallback 3: Extract text from quotes in the response
+      const quotedMatches = response.match(/["']([^"']{3,})["']/g)
+      if (quotedMatches && quotedMatches.length > 0) {
+        // Use the last quoted string (usually the actual translation)
+        const lastQuoted = quotedMatches[quotedMatches.length - 1]
+        const extracted = lastQuoted.slice(1, -1) // Remove quotes
+        return {
+          translation: extracted,
           confidence: 0.2,
+        }
+      }
+
+      // Fallback 4: Try to extract from multi-line response
+      const lines = response.split('\n').map(l => l.trim()).filter(l => l.length > 0)
+      if (lines.length > 0) {
+        // Use the last non-empty line (often the translation)
+        const lastLine = lines[lines.length - 1]
+        // Remove common prefixes and JSON artifacts
+        const cleaned = lastLine
+          .replace(/^(translation|result|answer)\s*:\s*/i, '')
+          .replace(/["']/g, '')
+          .replace(/[,}]$/, '')
+          .trim()
+
+        if (cleaned.length > 0 && cleaned.length < 500) {
+          return {
+            translation: cleaned,
+            confidence: 0.15,
+          }
         }
       }
 

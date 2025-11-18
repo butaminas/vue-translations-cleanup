@@ -288,11 +288,14 @@ describe('extract-strings/autoTranslate', () => {
       expect(backup).toEqual({ existing: 'Existing' })
     })
 
-    it('should return early if no new keys', async () => {
+    it('should translate missing keys when no new keys are provided', async () => {
       vol.writeFileSync('/test/locales/en.json', JSON.stringify({ key: 'Value' }))
 
       const mockAIClient = {
-        translateText: vi.fn(),
+        translateText: vi.fn().mockResolvedValue({
+          translation: 'Wert',
+          confidence: 0.9,
+        }),
       }
 
       const { autoTranslate } = await import('@/extract-strings/autoTranslate')
@@ -302,14 +305,24 @@ describe('extract-strings/autoTranslate', () => {
         targetLanguages: ['de'],
         aiClient: mockAIClient as any,
         sourceLanguage: 'en',
-        newKeys: new Map(),
+        newKeys: new Map(), // No new keys, but should check for missing translations
         backup: false,
         verbose: false,
       })
 
-      expect(result.translatedLanguages).toEqual([])
-      expect(mockAIClient.translateText).not.toHaveBeenCalled()
-      expect(vol.existsSync('/test/locales/de.json')).toBe(false)
+      // Should translate missing key to German
+      expect(result.translatedLanguages).toEqual(['de'])
+      expect(result.translationsPerLanguage.de).toBe(1)
+      expect(mockAIClient.translateText).toHaveBeenCalledWith('Value', 'de', {
+        key: 'key',
+        sourceLanguage: 'en',
+        category: '',
+      })
+
+      // Should create de.json with translation
+      expect(vol.existsSync('/test/locales/de.json')).toBe(true)
+      const deTranslations = JSON.parse(vol.readFileSync('/test/locales/de.json', 'utf-8'))
+      expect(deTranslations).toEqual({ key: 'Wert' })
     })
   })
 })

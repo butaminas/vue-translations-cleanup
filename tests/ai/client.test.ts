@@ -277,7 +277,7 @@ describe('AIClient', () => {
       const requestBody = JSON.parse(fetchCall[1].body)
       expect(requestBody.prompt).toContain('Hello')
       expect(requestBody.prompt).toContain('German')
-      expect(requestBody.prompt).toContain('greeting')
+      expect(requestBody.prompt).toContain('JSON') // Simplified prompt
     })
 
     it('should handle malformed translation response', async () => {
@@ -313,7 +313,7 @@ describe('AIClient', () => {
 
       const fetchCall = (global.fetch as any).mock.calls[0]
       const requestBody = JSON.parse(fetchCall[1].body)
-      expect(requestBody.prompt).toContain('Preserve any HTML tags, variables, or placeholders')
+      expect(requestBody.prompt).toContain('Preserve any variables')
     })
   })
 
