@@ -21,7 +21,7 @@
     "build": "tsc",
     "test": "vitest --run",
     "lint": "eslint src/**/*.ts",
-    "prepublishOnly": "pnpm run build",
+    "prepublishOnly": "yarn build",
     "changelog": "git fetch --tags --prune && conventional-changelog -p angular -i CHANGELOG.md -s -r 0 --tag-prefix v",
     "release:patch": "commit-and-tag-version --release-as patch && npm run changelog",
     "release:minor": "commit-and-tag-version --release-as minor && npm run changelog",
