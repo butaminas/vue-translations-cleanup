@@ -28,7 +28,9 @@ export function findConfigFile(cwd: string): string | null {
  */
 function loadTsConfig(filePath: string): ToolConfig {
   try {
-    const jiti = createJiti(filePath, {
+    // Create jiti instance with current file as context
+    // __filename equivalent in CommonJS
+    const jiti = createJiti(__filename, {
       interopDefault: true,
     })
 
