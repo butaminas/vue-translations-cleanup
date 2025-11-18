@@ -34,7 +34,7 @@ describe('rawStringDetector', () => {
 </template>
       `)
 
-      const config = { confidence: 'high' as const }
+      const config = {}
       const results = detectRawStringsInFile(file, config)
 
       expect(results.length).toBeGreaterThan(0)
@@ -80,7 +80,7 @@ describe('rawStringDetector', () => {
 </template>
       `)
 
-      const config = { confidence: 'high' as const }
+      const config = {}
       const results = detectRawStringsInFile(file, config)
 
       const texts = results.map(r => r.text)
@@ -90,77 +90,12 @@ describe('rawStringDetector', () => {
       expect(texts).not.toContain('123')
     })
 
-    it('should respect confidence level', () => {
-      const file = path.join(testDir, 'Component.vue')
-      fs.writeFileSync(file, `
-<template>
-  <div>Welcome to our application</div>
-  <span>btn</span>
-</template>
-      `)
-
-      const highConfig = { confidence: 'high' as const }
-      const lowConfig = { confidence: 'low' as const }
-
-      const highResults = detectRawStringsInFile(file, highConfig)
-      const lowResults = detectRawStringsInFile(file, lowConfig)
-
-      expect(lowResults.length).toBeGreaterThanOrEqual(highResults.length)
-    })
+    // NOTE: Confidence level option was removed - we always use high-quality heuristics
   })
 
-  describe('detectRawStringsInFile - Script sections', () => {
-    it('should detect strings in script', () => {
-      const file = path.join(testDir, 'Component.vue')
-      fs.writeFileSync(file, `
-<template><div></div></template>
-<script setup>
-const message = "Welcome to the application"
-const description = 'This is a longer description text'
-</script>
-      `)
-
-      const config = { confidence: 'high' as const }
-      const results = detectRawStringsInFile(file, config)
-
-      const texts = results.map(r => r.text)
-      expect(texts).toContain('Welcome to the application')
-      expect(texts).toContain('This is a longer description text')
-    })
-
-    it('should skip strings already in i18n calls', () => {
-      const file = path.join(testDir, 'Component.vue')
-      fs.writeFileSync(file, `
-<script setup>
-const { t } = useI18n()
-const message = t('already.translated')
-const newMessage = "Not yet translated"
-</script>
-      `)
-
-      const config = { confidence: 'high' as const }
-      const results = detectRawStringsInFile(file, config)
-
-      const texts = results.map(r => r.text)
-      expect(texts).not.toContain('already.translated')
-      expect(texts).toContain('Not yet translated')
-    })
-
-    it('should detect strings in plain TS/JS files', () => {
-      const file = path.join(testDir, 'utils.ts')
-      fs.writeFileSync(file, `
-export const ERROR_MESSAGE = "An error occurred"
-export const SUCCESS_MESSAGE = 'Operation completed successfully'
-      `)
-
-      const config = { confidence: 'high' as const }
-      const results = detectRawStringsInFile(file, config)
-
-      const texts = results.map(r => r.text)
-      expect(texts).toContain('An error occurred')
-      expect(texts).toContain('Operation completed successfully')
-    })
-  })
+  // NOTE: We intentionally do NOT extract strings from script sections!
+  // Script strings are usually NOT user-facing text (imports, API endpoints, variable names, etc.)
+  // This matches the behavior of eslint-plugin-vue-i18n/no-raw-text
 
   describe('detectRawStrings - multiple files', () => {
     it('should detect strings across multiple files', async () => {
@@ -178,7 +113,7 @@ export const SUCCESS_MESSAGE = 'Operation completed successfully'
 </template>
       `)
 
-      const config = { confidence: 'high' as const }
+      const config = {}
       const results = await detectRawStrings([file1, file2], config)
 
       expect(results.length).toBeGreaterThanOrEqual(2)
@@ -202,7 +137,7 @@ export const SUCCESS_MESSAGE = 'Operation completed successfully'
 </template>
       `)
 
-      const config = { confidence: 'high' as const }
+      const config = {}
       const results = await detectRawStrings([file1, file2], config)
 
       const sameMessages = results.filter(r => r.text === 'Same message')
@@ -220,7 +155,7 @@ export const SUCCESS_MESSAGE = 'Operation completed successfully'
       const invalidFile = path.join(testDir, 'Invalid.vue')
       fs.writeFileSync(invalidFile, '<template><div>Invalid')
 
-      const config = { confidence: 'high' as const }
+      const config = {}
       const results = await detectRawStrings([validFile, invalidFile], config)
 
       // Should still get results from valid file
@@ -258,7 +193,7 @@ export const SUCCESS_MESSAGE = 'Operation completed successfully'
 </template>
       `)
 
-      const config = { confidence: 'high' as const }
+      const config = {}
       const results = detectRawStringsInFile(file, config)
 
       const texts = results.map(r => r.text)
@@ -275,7 +210,7 @@ export const SUCCESS_MESSAGE = 'Operation completed successfully'
 </template>
       `)
 
-      const config = { confidence: 'high' as const }
+      const config = {}
       const results = detectRawStringsInFile(file, config)
 
       const texts = results.map(r => r.text)

@@ -268,54 +268,6 @@ function walkTemplateAST(
 }
 
 /**
- * Extract raw strings from script section
- */
-function extractFromScript(
-  scriptContent: string,
-  filePath: string,
-  config: ExtractConfig,
-): RawStringLocation[] {
-  const results: RawStringLocation[] = []
-
-  // Extract string literals (simple approach)
-  // Match strings that are not in i18n function calls
-  const stringRegex = /(['"`])(?:(?=(\\?))\2.)*?\1/g
-  let match: RegExpExecArray | null
-
-  while ((match = stringRegex.exec(scriptContent)) !== null) {
-    const fullMatch = match[0]
-    const text = fullMatch.slice(1, -1) // Remove quotes
-
-    // Skip if it's already in an i18n call
-    // Look back up to 50 chars to check for t( or $t(
-    const beforeMatch = scriptContent.substring(Math.max(0, match.index - 50), match.index)
-    if (/\bt\s*\(\s*$/.test(beforeMatch) || /\$t\s*\(\s*$/.test(beforeMatch)) {
-      continue
-    }
-
-    const analysis = isLikelyTranslatable(text, config)
-
-    if (analysis.translatable) {
-      const beforeMatchFull = scriptContent.substring(0, match.index)
-      const lines = beforeMatchFull.split('\n')
-      const line = lines.length
-      const column = lines[lines.length - 1].length
-
-      results.push({
-        text: text.trim(),
-        file: filePath,
-        line,
-        column,
-        context: 'script',
-        confidence: analysis.confidence,
-      })
-    }
-  }
-
-  return results
-}
-
-/**
  * Detect raw strings in a Vue file using proper AST parsing
  */
 export function detectRawStringsInFile(
@@ -330,7 +282,7 @@ export function detectRawStringsInFile(
     try {
       const { descriptor } = parseVueSFC(content, { filename: filePath })
 
-      // Extract from template using AST walking
+      // Extract from template using AST walking (ONLY templates, not scripts!)
       if (descriptor.template) {
         const templateAST = descriptor.template.ast
         if (templateAST && templateAST.children) {
@@ -340,22 +292,16 @@ export function detectRawStringsInFile(
         }
       }
 
-      // Extract from script
-      if (descriptor.script || descriptor.scriptSetup) {
-        const scriptContent = descriptor.script?.content || descriptor.scriptSetup?.content || ''
-        const scriptResults = extractFromScript(scriptContent, filePath, config)
-        results.push(...scriptResults)
-      }
+      // NOTE: We intentionally do NOT extract from script sections!
+      // Script strings are usually NOT user-facing text (imports, API endpoints, etc.)
+      // This matches the behavior of eslint-plugin-vue-i18n/no-raw-text
     }
     catch (error) {
       console.warn(`Warning: Failed to parse Vue file ${filePath}:`, error)
     }
   }
-  else if (filePath.match(/\.(ts|js|tsx|jsx)$/)) {
-    // Handle plain JS/TS files
-    const scriptResults = extractFromScript(content, filePath, config)
-    results.push(...scriptResults)
-  }
+  // For non-Vue files (TS/JS), we don't extract strings at all
+  // These are code files, not templates, so strings are rarely user-facing text
 
   return results
 }

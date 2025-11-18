@@ -267,24 +267,23 @@ const buttonLabel = ref('Cancel')
       const results = detectRawStringsInFile(testFilePath, config)
 
       // Debug: show what we extracted
-      if (results.length !== 4) {
+      if (results.length !== 3) {
         console.log('Extracted:', results.map(r => ({ text: r.text, context: r.context })))
       }
 
       // SHOULD extract:
-      // - "Create Project" (literal text)
-      // - "Project name" (placeholder attribute)
-      // - "Save" (literal text)
-      // - "Cancel" (hardcoded string in script)
+      // - "Create Project" (literal text in template)
+      // - "Project name" (placeholder attribute in template)
+      // - "Save" (literal text in template)
       //
       // Should NOT extract:
       // - {{ t('dialog.description') }} (already translated)
       // - {{ buttonLabel }} (variable reference)
-      expect(results).toHaveLength(4)
+      // - "Cancel" in script (we don't extract from script sections to match eslint-plugin-vue-i18n/no-raw-text)
+      expect(results).toHaveLength(3)
       expect(results.map(r => r.text)).toContain('Create Project')
       expect(results.map(r => r.text)).toContain('Project name')
       expect(results.map(r => r.text)).toContain('Save')
-      expect(results.map(r => r.text)).toContain('Cancel')
     })
   })
 })

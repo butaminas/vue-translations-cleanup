@@ -54,7 +54,6 @@ describe('codeReplacer', () => {
     line: 1,
     column: 1,
     context: 'template',
-    confidence: 'high',
     ...overrides,
   })
 
