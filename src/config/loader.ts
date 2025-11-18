@@ -1,6 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
+import { createJiti } from 'jiti'
 import type { ConfigFileExport, ToolConfig } from './types'
 
 const CONFIG_FILE_NAMES = [
@@ -23,10 +24,34 @@ export function findConfigFile(cwd: string): string | null {
 }
 
 /**
- * Load config from a TypeScript or JavaScript file
- * Uses dynamic import to support both .ts (via ts-node/tsx) and .mjs
+ * Load config from a TypeScript file using jiti
  */
-async function loadTsOrMjsConfig(filePath: string): Promise<ToolConfig> {
+function loadTsConfig(filePath: string): ToolConfig {
+  try {
+    const jiti = createJiti(filePath, {
+      interopDefault: true,
+    })
+
+    const imported = jiti(filePath) as ConfigFileExport | ToolConfig
+
+    // Handle both default export and direct export
+    const config = imported && typeof imported === 'object' && 'default' in imported
+      ? imported.default
+      : imported
+
+    return config as ToolConfig
+  }
+  catch (error) {
+    throw new Error(
+      `Failed to load config from ${filePath}: ${error instanceof Error ? error.message : String(error)}`,
+    )
+  }
+}
+
+/**
+ * Load config from an ES module file (.mjs)
+ */
+async function loadMjsConfig(filePath: string): Promise<ToolConfig> {
   try {
     // Convert to file:// URL for dynamic import
     const fileUrl = pathToFileURL(filePath).href
@@ -71,11 +96,15 @@ export async function loadConfigFile(filePath: string): Promise<ToolConfig> {
     return loadJsonConfig(filePath)
   }
 
-  if (ext === '.ts' || ext === '.mts' || ext === '.mjs' || ext === '.js') {
-    return await loadTsOrMjsConfig(filePath)
+  if (ext === '.ts' || ext === '.mts') {
+    return loadTsConfig(filePath)
   }
 
-  throw new Error(`Unsupported config file type: ${ext}. Supported: .ts, .mjs, .json`)
+  if (ext === '.mjs' || ext === '.js') {
+    return await loadMjsConfig(filePath)
+  }
+
+  throw new Error(`Unsupported config file type: ${ext}. Supported: .ts, .mts, .mjs, .js, .json`)
 }
 
 /**
