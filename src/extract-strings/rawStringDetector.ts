@@ -107,7 +107,8 @@ function isLikelyTranslatable(text: string, config?: ExtractConfig): {
   }
 
   // CSS classes or IDs (single words with hyphens/underscores)
-  if (/^[a-z][a-z0-9_-]*$/i.test(trimmed) && trimmed.includes('-')) {
+  // Only filter if all lowercase - words like "E-mail" or "Client-Side" are actual text
+  if (/^[a-z][a-z0-9_-]*$/.test(trimmed) && trimmed.includes('-')) {
     return { translatable: false, confidence: 'medium', reason: 'likely CSS class' }
   }
 
