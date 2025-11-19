@@ -88,9 +88,22 @@ function isLikelyTranslatable(text: string, config?: ExtractConfig): {
     return { translatable: false, confidence: 'high', reason: 'destructuring syntax' }
   }
 
-  // CSS properties and values
-  if (/[:;]/.test(trimmed) || /^[a-z-]+:\s*[^;]+;?$/i.test(trimmed)) {
+  // CSS properties and values - be more specific to avoid false positives
+  // Only filter if it looks like actual CSS: "property: value" or "property: value;"
+  // But NOT user-facing text like "Name: John" or "Price: $99"
+  if (/^[a-z-]+:\s*[a-z0-9#%().,\s-]+;?$/i.test(trimmed) && !trimmed.includes(' ')) {
     return { translatable: false, confidence: 'high', reason: 'CSS code' }
+  }
+
+  // CSS class lists (multiple space-separated CSS classes like Tailwind)
+  // e.g., "container mx-auto px-4" or "text-red-500 font-bold"
+  if (/\s/.test(trimmed) && trimmed.split(/\s+/).every(word => /^[a-z][a-z0-9_-]*$/i.test(word))) {
+    const words = trimmed.split(/\s+/)
+    const cssLikeWords = words.filter(w => w.includes('-') || /^[a-z]+\d+$/.test(w))
+    // If most words look like CSS classes, filter it out
+    if (cssLikeWords.length >= words.length / 2) {
+      return { translatable: false, confidence: 'high', reason: 'CSS class list' }
+    }
   }
 
   // CSS classes or IDs (single words with hyphens/underscores)
@@ -105,20 +118,28 @@ function isLikelyTranslatable(text: string, config?: ExtractConfig): {
 
   // Single words without spaces
   if (!/\s/.test(trimmed) && trimmed.length < 15) {
+    // Strip trailing punctuation for checking
+    const wordOnly = trimmed.replace(/[.!?:,;]+$/, '').toLowerCase()
     const lowerTrimmed = trimmed.toLowerCase()
 
-    // Check if it's a common UI word (case-insensitive)
-    if (COMMON_UI_WORDS.has(lowerTrimmed)) {
+    // Check if it's a common UI word (case-insensitive, with or without punctuation)
+    if (COMMON_UI_WORDS.has(wordOnly)) {
       return { translatable: true, confidence: 'high', reason: 'common UI word' }
     }
 
+    // Words ending with ellipsis are likely loading/action states (e.g., "Processing...")
+    if (/^[A-Z][a-z]+\.{3}$/.test(trimmed) || /^[A-Z][a-z]+…$/.test(trimmed)) {
+      return { translatable: true, confidence: 'high', reason: 'loading/action state' }
+    }
+
     // Allow normal capitalized words (UI labels like "Save", "Cancel", "Edit")
-    if (/^[A-Z][a-z]+$/.test(trimmed) && trimmed.length >= 3) {
+    // Also allow words ending with common punctuation
+    if (/^[A-Z][a-z]+[.!?:,;]*$/.test(trimmed) && wordOnly.length >= 3) {
       return { translatable: true, confidence: 'high', reason: 'capitalized UI label' }
     }
 
     // Filter out lowercase-only single words (variable names, CSS classes)
-    if (trimmed === lowerTrimmed) {
+    if (trimmed === lowerTrimmed && !trimmed.includes('.')) {
       return { translatable: false, confidence: 'medium', reason: 'lowercase single word (not in UI word list)' }
     }
 
