@@ -51,46 +51,35 @@ const options = program.opts()
 function generateConfigContent(settings: {
   translationFile: string
   srcPath: string
-  pattern: { functionName: string, example: string, importStatement?: string } | null
+  targetLanguage: string
+  customPattern?: { functionName: string, example: string, importStatement?: string }
 }): string {
-  const { translationFile, srcPath, pattern } = settings
+  const { translationFile, srcPath, targetLanguage, customPattern } = settings
 
-  // Build i18nPatterns array
+  // Build i18nPatterns array only if custom pattern is provided
   let patternsCode = ''
-  if (pattern) {
+  if (customPattern) {
     // Use the example as the import template
-    const importTemplate = pattern.example
+    const importTemplate = customPattern.example
 
     // Escape special regex characters in the pattern
     const escapedTemplate = importTemplate.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
     const regexPattern = escapedTemplate.replace(/\\s\\*/g, '\\\\s*')
 
     // Use detected import statement or provide a default based on the pattern
-    let importStatementStr = pattern.importStatement
+    let importStatementStr = customPattern.importStatement
     if (!importStatementStr && importTemplate.includes('useI18n')) {
       importStatementStr = "import { useI18n } from 'vue-i18n'"
     }
 
     patternsCode = `
+    // Custom i18n pattern detected - please review and adjust if needed
     i18nPatterns: [
       {
         pattern: /${regexPattern}/,
-        functionName: '${pattern.functionName}',
+        functionName: '${customPattern.functionName}',
         importTemplate: '${importTemplate}',
         importStatement: '${importStatementStr || ''}',
-        injectLocation: 'script-setup',
-      },
-    ],`
-  }
-  else {
-    // Default vue-i18n pattern with importStatement
-    patternsCode = `
-    i18nPatterns: [
-      {
-        pattern: /const\\s*{\\s*t\\s*}\\s*=\\s*useI18n\\(\\)/,
-        functionName: 't',
-        importTemplate: 'const { t } = useI18n()',
-        importStatement: "import { useI18n } from 'vue-i18n'",
         injectLocation: 'script-setup',
       },
     ],`
@@ -112,10 +101,9 @@ const config: ToolConfig = {
   // Extraction settings
   extract: {
     // Target language determines which file to update (e.g., 'en' -> en.json)
-    targetLanguage: 'en',
+    targetLanguage: '${targetLanguage}',
     keyFormat: 'snake_case',
-    maxKeyLength: 50,
-${patternsCode}
+    maxKeyLength: 50,${patternsCode}
   },
 
   // AI translation (optional)
@@ -142,10 +130,10 @@ async function run() {
     console.log(c.strong('\n=== Config Generator ===\n'))
 
     const configFileName = 'vue-translations-cleanup.config.ts'
-    const configPath = path.join(process.cwd(), configFileName)
+    const configFilePath = path.join(process.cwd(), configFileName)
 
     // Check if config already exists
-    if (fs.existsSync(configPath)) {
+    if (fs.existsSync(configFilePath)) {
       console.error(c.error(`${symbols.error} Config file already exists: ${configFileName}`))
       console.error(c.dim('Delete or rename the existing file to generate a new one.'))
       process.exit(1)
@@ -153,7 +141,7 @@ async function run() {
 
     console.log(c.dim(`${symbols.info} Detecting project configuration...`))
 
-    // Detect paths
+    // Detect paths and i18n settings
     const detected = await detectConfig(process.cwd())
     const cwd = process.cwd()
 
@@ -174,28 +162,74 @@ async function run() {
       translationDir = path.dirname(translationDir)
     }
 
+    // Use detected locale or default to 'en'
+    const targetLanguage = detected.defaultLocale || 'en'
+
     console.log(c.dim(`  Translation directory: ${translationDir}`))
     console.log(c.dim(`  Source path: ${srcPathRel}`))
+    console.log(c.dim(`  Default locale: ${targetLanguage}`))
 
-    // Detect i18n patterns
-    let detectedPattern = null
-    if (detected.srcPath && fs.existsSync(path.resolve(process.cwd(), detected.srcPath))) {
-      console.log(c.dim(`${symbols.info} Scanning for i18n patterns...`))
+    // Determine which case we're in based on detection results
+    let customPattern: { functionName: string, example: string, importStatement?: string } | undefined
+    let needsUserReview = false
 
-      const srcDir = path.resolve(process.cwd(), detected.srcPath)
+    // Case 1: Config found with globalInjection enabled (default) - use $t
+    if (detected.configType && detected.globalInjection !== false) {
+      console.log(c.dim(`  i18n config: ${detected.configType} (using $t)`))
+      // No custom pattern needed - $t is available globally
+    }
+    // Case 2: Need to scan for i18n usage
+    else {
+      console.log(c.dim(`${symbols.info} Scanning for i18n usage patterns...`))
 
-      try {
-        const result = await detectI18nPatterns(srcDir, '**/*.vue')
-        if (result.recommendedPattern) {
-          detectedPattern = result.recommendedPattern
-          console.log(c.dim(`  Detected pattern: ${detectedPattern.functionName}() (${detectedPattern.count} usages)`))
+      const srcDir = detected.srcPath
+        ? path.resolve(process.cwd(), detected.srcPath)
+        : path.join(process.cwd(), srcPathRel)
+
+      if (fs.existsSync(srcDir)) {
+        try {
+          const result = await detectI18nPatterns(srcDir, '**/*.vue')
+
+          if (result.recommendedPattern) {
+            const pattern = result.recommendedPattern
+
+            // Check if it's a standard $t pattern
+            if (pattern.functionName === '$t' || pattern.type === 'global') {
+              console.log(c.dim(`  Found $t() usage (${pattern.count} occurrences)`))
+              // No custom pattern needed
+            }
+            else {
+              // Custom pattern detected (e.g., useI18n, injectContext, etc.)
+              console.log(c.dim(`  Found ${pattern.functionName}() pattern (${pattern.count} occurrences)`))
+
+              customPattern = {
+                functionName: pattern.functionName,
+                example: pattern.example,
+                importStatement: pattern.importStatement,
+              }
+              needsUserReview = true
+            }
+          }
+          else {
+            // Case 3: No i18n usage found
+            console.error(c.error(`\n${symbols.error} No i18n usage detected in your project.`))
+            console.error(c.dim('\nThis tool requires existing i18n setup in your project.'))
+            console.error(c.dim('Please ensure you have:'))
+            console.error(c.dim('  - vue-i18n or @nuxtjs/i18n installed'))
+            console.error(c.dim('  - At least one translation function call ($t, t, etc.)'))
+            console.error(c.dim('\nAlternatively, create the config file manually.'))
+            process.exit(1)
+          }
         }
-        else if (result.patterns.length === 0) {
-          console.log(c.dim(`  No existing i18n patterns found, using vue-i18n defaults`))
+        catch (error) {
+          console.log(c.warn(`  ${symbols.warn} Could not scan for patterns: ${(error as Error).message}`))
         }
       }
-      catch {
-        console.log(c.dim(`  Could not scan for patterns, using defaults`))
+      else {
+        // Source directory not found - Case 3
+        console.error(c.error(`\n${symbols.error} Source directory not found: ${srcDir}`))
+        console.error(c.dim('Please create the config file manually.'))
+        process.exit(1)
       }
     }
 
@@ -203,13 +237,21 @@ async function run() {
     const configContent = generateConfigContent({
       translationFile: translationDir,
       srcPath: srcPathRel,
-      pattern: detectedPattern,
+      targetLanguage,
+      customPattern,
     })
 
     // Write config file
-    fs.writeFileSync(configPath, configContent, 'utf-8')
+    fs.writeFileSync(configFilePath, configContent, 'utf-8')
 
     console.log(c.success(`\n${symbols.success} Config file created: ${configFileName}`))
+
+    if (needsUserReview) {
+      console.log(c.warn(`\n${symbols.warn} Custom i18n pattern detected.`))
+      console.log(c.dim('Please review the generated config file and ensure the i18nPatterns'))
+      console.log(c.dim('section is correct for your setup, especially the importStatement.'))
+    }
+
     console.log(c.dim('\nYou can now run:'))
     console.log(c.dim(`  npx vue-translations-cleanup          # cleanup mode`))
     console.log(c.dim(`  npx vue-translations-cleanup --extract # extract mode`))

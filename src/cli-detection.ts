@@ -7,6 +7,12 @@ export interface DetectedConfig {
   srcPath?: string
   translationsPath?: string
   reason?: string
+  /** Detected default locale from i18n config */
+  defaultLocale?: string
+  /** Whether $t global injection is enabled (default: true) */
+  globalInjection?: boolean
+  /** Which i18n config was found */
+  configType?: 'nuxt' | 'vite' | 'vue-i18n' | undefined
 }
 
 function pathFromIncludeRaw(rawExpr: string, viteDir: string): string | undefined {
@@ -78,7 +84,16 @@ async function detectFromViteConfig(cwd: string): Promise<Partial<DetectedConfig
         const abs = pathFromIncludeRaw(raw, viteDir)
         if (abs) {
           const baseDir = baseDirFromInclude(abs)
-          return { translationsPath: baseDir }
+
+          // Try to find vue-i18n config in common locations
+          const i18nConfig = await detectVueI18nConfig(cwd)
+
+          return {
+            translationsPath: baseDir,
+            defaultLocale: i18nConfig.defaultLocale,
+            globalInjection: i18nConfig.globalInjection,
+            configType: 'vite',
+          }
         }
       }
     }
@@ -87,6 +102,56 @@ async function detectFromViteConfig(cwd: string): Promise<Partial<DetectedConfig
     }
   }
   return {}
+}
+
+/**
+ * Detect vue-i18n configuration from common file locations
+ */
+async function detectVueI18nConfig(cwd: string): Promise<{ defaultLocale?: string, globalInjection?: boolean }> {
+  // Common locations for vue-i18n setup
+  const i18nFiles = [
+    'src/i18n/index.ts',
+    'src/i18n/index.js',
+    'src/i18n.ts',
+    'src/i18n.js',
+    'src/plugins/i18n.ts',
+    'src/plugins/i18n.js',
+  ]
+
+  for (const file of i18nFiles) {
+    const full = path.join(cwd, file)
+    if (!fs.existsSync(full))
+      continue
+
+    try {
+      const content = fs.readFileSync(full, 'utf-8')
+
+      // Check if this is a vue-i18n config file
+      if (!(/createI18n|vue-i18n/i.test(content)))
+        continue
+
+      // Extract locale
+      let defaultLocale: string | undefined
+      const localeMatch = content.match(/locale\s*:\s*(['"`])([a-z]{2}(?:-[A-Z]{2})?)\1/i)
+      if (localeMatch) {
+        defaultLocale = localeMatch[2]
+      }
+
+      // Check globalInjection (default is true in vue-i18n)
+      let globalInjection = true
+      if (/globalInjection\s*:\s*false/i.test(content)) {
+        globalInjection = false
+      }
+
+      return { defaultLocale, globalInjection }
+    }
+    catch {
+      // ignore and continue
+    }
+  }
+
+  // Defaults
+  return { globalInjection: true }
 }
 
 async function detectFromNuxtConfig(cwd: string): Promise<Partial<DetectedConfig>> {
@@ -133,8 +198,30 @@ async function detectFromNuxtConfig(cwd: string): Promise<Partial<DetectedConfig
         }
       }
 
+      // Extract defaultLocale from i18n config
+      // Look for: defaultLocale: 'en' or defaultLocale: "en"
+      let defaultLocale: string | undefined
+      const localeMatch = content.match(/defaultLocale\s*:\s*(['"`])([a-z]{2}(?:-[A-Z]{2})?)\1/i)
+      if (localeMatch) {
+        defaultLocale = localeMatch[2]
+      }
+
+      // Check globalInjection setting
+      // In @nuxtjs/i18n, it's enabled by default
+      // Look for: globalInjection: false (to disable it)
+      let globalInjection = true // default is true for @nuxtjs/i18n
+      if (/globalInjection\s*:\s*false/i.test(content)) {
+        globalInjection = false
+      }
+
       if (srcPath || translationsPath) {
-        return { srcPath, translationsPath }
+        return {
+          srcPath,
+          translationsPath,
+          defaultLocale,
+          globalInjection,
+          configType: 'nuxt',
+        }
       }
     }
     catch {
@@ -195,6 +282,12 @@ export async function detectConfig(cwd: string = process.cwd()): Promise<Detecte
     detected.srcPath = fromVite.srcPath
   if (!detected.translationsPath && fromVite.translationsPath)
     detected.translationsPath = fromVite.translationsPath
+  if (!detected.configType && fromVite.configType)
+    detected.configType = fromVite.configType
+  if (detected.defaultLocale === undefined && fromVite.defaultLocale)
+    detected.defaultLocale = fromVite.defaultLocale
+  if (detected.globalInjection === undefined && fromVite.globalInjection !== undefined)
+    detected.globalInjection = fromVite.globalInjection
 
   // Finally fall back to common paths
   const fromCommon = await detectCommonPaths(cwd)
