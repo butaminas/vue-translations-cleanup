@@ -14,31 +14,30 @@ Create a config file in your project root:
 
 ```typescript
 // vue-translations-cleanup.config.ts
-import type { ToolConfig } from 'vue-translations-cleanup/config'
+import type { ToolConfig } from 'vue-translations-cleanup'
 
 export default {
   // Optional: specify paths (auto-detected by default)
-  translationFile: './locales/en.json',
+  // Use directory for translations - file determined by targetLanguage
+  translationFile: './locales',
   srcPath: './src',
 
   // Extraction settings
   extract: {
     targetLanguage: 'en',
-    confidence: 'high',
     keyFormat: 'snake_case',
     maxKeyLength: 50,
   },
 
-  // AI configuration
+  // AI configuration (optional)
   ai: {
     enabled: false,
   },
 
-  // Cleanup settings
-  cleanup: {
-    backup: true,
-    verbose: false,
-  },
+  // Global options
+  backup: true,
+  verbose: false,
+  dryRun: false,
 } satisfies ToolConfig
 ```
 
@@ -50,11 +49,8 @@ See [vue-translations-cleanup.config.example.ts](https://github.com/butaminas/vu
 
 ```typescript
 extract: {
-  // Target language for extracted strings
+  // Target language for extracted strings (determines which file to update)
   targetLanguage: 'en',
-
-  // Minimum confidence for string detection
-  confidence: 'high', // 'high' | 'medium' | 'low'
 
   // Key naming format
   keyFormat: 'snake_case', // 'snake_case' | 'camelCase' | 'kebab-case' | 'dot.case'
@@ -80,12 +76,19 @@ extract: {
     '**/__tests__/**',
   ],
 
-  // Custom i18n patterns
+  // Regex pattern to ignore matching strings
+  ignorePattern: '^(mdi-.*|fa-.*)$',
+
+  // Specific strings to ignore
+  ignoreText: ['EUR', 'USD', '.', ','],
+
+  // Custom i18n patterns (only needed for non-standard setups)
   i18nPatterns: [
     {
       pattern: /const\s*{\s*t\s*}\s*=\s*useI18n\(\)/,
       functionName: 't',
       importTemplate: 'const { t } = useI18n()',
+      importStatement: "import { useI18n } from 'vue-i18n'",
       injectLocation: 'script-setup',
     },
   ],
@@ -124,11 +127,13 @@ ai: {
 }
 ```
 
-## Cleanup Configuration
+## Global Options
+
+These options apply to both cleanup and extract modes:
 
 ```typescript
-cleanup: {
-  // Create backup files
+{
+  // Create backup files before modifying
   backup: true,
 
   // Show detailed output
@@ -136,8 +141,14 @@ cleanup: {
 
   // Preview without writing
   dryRun: false,
+}
+```
 
-  // File pattern to scan
+## Cleanup Configuration
+
+```typescript
+cleanup: {
+  // File pattern to scan (cleanup mode only)
   pattern: '**/*.{vue,js,ts,tsx,jsx,mjs,cjs}',
 }
 ```
@@ -176,7 +187,7 @@ npx vue-translations-cleanup --extract
 Import types for full IntelliSense:
 
 ```typescript
-import type { ToolConfig } from 'vue-translations-cleanup/config'
+import type { ToolConfig } from 'vue-translations-cleanup'
 
 const config: ToolConfig = {
   // Full type safety and autocomplete

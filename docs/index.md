@@ -6,7 +6,7 @@ hero:
   text: Clean & Extract i18n
   tagline: Find unused translation keys and extract raw strings automatically for Vue.js and Nuxt projects
   image:
-    src: /logo.svg
+    src: /logo.png
     alt: vue-translations-cleanup
   actions:
     - theme: brand

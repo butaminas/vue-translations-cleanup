@@ -1,9 +1,15 @@
 # vue-translations-cleanup
 
-[![npm version](https://img.shields.io/npm/v/vue-translations-cleanup.svg)](https://www.npmjs.com/package/vue-translations-cleanup)
-[![License](https://img.shields.io/npm/l/vue-translations-cleanup.svg)](https://github.com/butaminas/vue-translations-cleanup/blob/main/LICENSE)
-[![Vue 3](https://img.shields.io/badge/Vue-3.x-brightgreen?logo=vue.js)](https://vuejs.org/)
-[![Nuxt 3/4](https://img.shields.io/badge/Nuxt-3%20%7C%204-00DC82?logo=nuxt.js)](https://nuxt.com/)
+<p align="center">
+  <img src="docs/public/logo.png" alt="vue-translations-cleanup" width="200">
+</p>
+
+<p align="center">
+  <a href="https://www.npmjs.com/package/vue-translations-cleanup"><img src="https://img.shields.io/npm/v/vue-translations-cleanup.svg" alt="npm version"></a>
+  <a href="https://github.com/butaminas/vue-translations-cleanup/blob/main/LICENSE"><img src="https://img.shields.io/npm/l/vue-translations-cleanup.svg" alt="License"></a>
+  <a href="https://vuejs.org/"><img src="https://img.shields.io/badge/Vue-3.3+-brightgreen?logo=vue.js" alt="Vue 3.3+"></a>
+  <a href="https://nuxt.com/"><img src="https://img.shields.io/badge/Nuxt-3.0+-00DC82?logo=nuxt.js" alt="Nuxt 3.0+"></a>
+</p>
 
 A powerful CLI tool for Vue.js and Nuxt i18n projects:
 - **Cleanup Mode**: Remove unused translation keys
@@ -117,12 +123,13 @@ export default {
 
 ## Compatibility
 
-| Framework | Support | Version |
-|-----------|---------|---------|
-| Vue 3 | Full | 3.x |
-| Nuxt 3/4 | Full | 3.x, 4.x |
-| vue-i18n | Full | Intlify |
-| @nuxtjs/i18n | Full | Latest |
+| Package | Minimum Version | Notes |
+|---------|-----------------|-------|
+| Vue | 3.3.0+ | Composition API required |
+| Nuxt | 3.0.0+ | Including Nuxt 4 |
+| vue-i18n | 9.0.0+ | Intlify ecosystem |
+| @nuxtjs/i18n | 8.0.0+ | For Nuxt projects |
+| Node.js | 18.0.0+ | Required runtime |
 
 ## Documentation
 

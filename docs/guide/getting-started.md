@@ -42,61 +42,102 @@ pnpm add -g vue-translations-cleanup
 
 ## Quick Start
 
-### Cleanup Mode (Default)
+### Step 1: Generate Config (Optional but Recommended)
 
-Remove unused translation keys:
+Run `--init` to auto-detect your project setup and generate a config file:
 
 ```bash
-# Auto-detect paths
-npx vue-translations-cleanup
-
-# Specify paths manually
-npx vue-translations-cleanup -t ./locales/en.json -s ./src
-
-# Preview changes (dry-run)
-npx vue-translations-cleanup --dry-run
-
-# Show detailed output
-npx vue-translations-cleanup --verbose
+npx vue-translations-cleanup --init
 ```
+
+**What happens:**
+- Detects your i18n framework (@nuxtjs/i18n or vue-i18n)
+- Finds your translation files and source directories
+- Detects your default locale (e.g., 'en')
+- Creates `vue-translations-cleanup.config.ts` with recommended settings
 
 **Output:**
 ```
-✓ Found translation file: /project/locales/en.json
-✓ Scanning source files in: /project/src
+=== Config Generator ===
 
-Translation Summary:
-  Total keys: 45
-  Used keys: 38
-  Unused keys: 7
+ℹ Detecting project configuration...
+  Translation directory: ./locales
+  Source path: ./app
+  Default locale: en
+  i18n config: nuxt (using $t)
+
+✓ Config file created: vue-translations-cleanup.config.ts
+
+You can now run:
+  npx vue-translations-cleanup          # cleanup mode
+  npx vue-translations-cleanup --extract # extract mode
+```
+
+::: tip When to skip --init
+You can skip `--init` if you just want to run cleanup mode with auto-detection.
+The tool will auto-detect your paths without needing a config file.
+:::
+
+### Step 2: Cleanup Mode (Default)
+
+Remove unused translation keys from your JSON files:
+
+```bash
+# Auto-detect paths (works without config file)
+npx vue-translations-cleanup
+
+# Or specify paths manually
+npx vue-translations-cleanup -t ./locales/en.json -s ./src
+
+# Preview changes first (recommended)
+npx vue-translations-cleanup --dry-run --verbose
+```
+
+**What happens:**
+- Scans all your Vue/JS/TS files for translation function calls ($t, t, etc.)
+- Compares against keys in your translation JSON file
+- Removes keys that are never used
+- Creates a backup file (.backup) before making changes
+
+**Output:**
+```
+ℹ Found 7 unused translation keys out of 45 total keys
 
 Unused translations:
   - old.feature.title
   - deprecated.button
   - test.debug.log
+  ...
 
 ✓ Cleaned translations saved to: /project/locales/en.json
 ✓ Backup created: /project/locales/en.json.backup
 ```
 
-### Extract Mode
+### Step 3: Extract Mode (Optional)
 
-Convert raw strings to i18n:
+Convert hardcoded strings to i18n function calls:
 
 ```bash
-# Specify translation file (required for extract mode)
-npx vue-translations-cleanup --extract -t ./locales/en.json -s ./src
+# With config file (recommended - uses targetLanguage setting)
+npx vue-translations-cleanup --extract
 
-# With config file (can auto-detect paths)
-npx vue-translations-cleanup --extract --config ./my-config.ts
+# Or specify paths directly
+npx vue-translations-cleanup --extract -t ./locales -s ./src
 
-# Preview changes
-npx vue-translations-cleanup --extract -t ./locales/en.json -s ./src --dry-run --verbose
+# Preview changes first
+npx vue-translations-cleanup --extract --dry-run --verbose
 ```
 
-::: warning Extract Mode Requirement
-Extract mode requires a **single translation file**, not a directory.
-Either specify `-t ./locales/en.json` or use a config file.
+**What happens:**
+- Scans your Vue templates and scripts for hardcoded strings
+- Generates semantic translation keys (e.g., "Submit" → "common.submit")
+- Replaces strings with i18n calls (e.g., `{{ t('common.submit') }}`)
+- Auto-injects imports when needed
+- Updates your translation JSON file with new keys
+
+::: tip Translation Directory Support
+You can specify a directory (e.g., `./locales`) instead of a specific file.
+The tool uses `extract.targetLanguage` from your config to determine which file to update (e.g., `en` → `locales/en.json`).
 :::
 
 **Output:**
