@@ -313,7 +313,7 @@ describe('AIClient', () => {
 
       const fetchCall = (global.fetch as any).mock.calls[0]
       const requestBody = JSON.parse(fetchCall[1].body)
-      expect(requestBody.prompt).toContain('Preserve any variables')
+      expect(requestBody.prompt).toContain('Preserve variables like {name}')
     })
   })
 

@@ -65,25 +65,32 @@ function generateConfigContent(settings: {
     const escapedTemplate = importTemplate.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
     const regexPattern = escapedTemplate.replace(/\\s\\*/g, '\\\\s*')
 
+    // Use detected import statement or provide a default based on the pattern
+    let importStatementStr = pattern.importStatement
+    if (!importStatementStr && importTemplate.includes('useI18n')) {
+      importStatementStr = "import { useI18n } from 'vue-i18n'"
+    }
+
     patternsCode = `
     i18nPatterns: [
       {
         pattern: /${regexPattern}/,
         functionName: '${pattern.functionName}',
-        importTemplate: '${importTemplate}',${pattern.importStatement ? `
-        importStatement: '${pattern.importStatement}',` : ''}
+        importTemplate: '${importTemplate}',
+        importStatement: '${importStatementStr || ''}',
         injectLocation: 'script-setup',
       },
     ],`
   }
   else {
-    // Default vue-i18n pattern
+    // Default vue-i18n pattern with importStatement
     patternsCode = `
     i18nPatterns: [
       {
         pattern: /const\\s*{\\s*t\\s*}\\s*=\\s*useI18n\\(\\)/,
         functionName: 't',
         importTemplate: 'const { t } = useI18n()',
+        importStatement: "import { useI18n } from 'vue-i18n'",
         injectLocation: 'script-setup',
       },
     ],`
@@ -97,11 +104,14 @@ function generateConfigContent(settings: {
  */
 const config: ToolConfig = {
   // Detected paths
+  // translationFile: directory containing translation JSON files (e.g., en.json, de.json)
+  // The specific file is determined by extract.targetLanguage
   translationFile: '${translationFile}',
   srcPath: '${srcPath}',
 
   // Extraction settings
   extract: {
+    // Target language determines which file to update (e.g., 'en' -> en.json)
     targetLanguage: 'en',
     keyFormat: 'snake_case',
     maxKeyLength: 50,
@@ -145,11 +155,27 @@ async function run() {
 
     // Detect paths
     const detected = await detectConfig(process.cwd())
-    const translationFile = detected.translationsPath || './locales/en.json'
-    const srcPath = detected.srcPath || './src'
+    const cwd = process.cwd()
 
-    console.log(c.dim(`  Translation file: ${translationFile}`))
-    console.log(c.dim(`  Source path: ${srcPath}`))
+    // Convert absolute paths to relative and use directory for translations
+    let translationDir = detected.translationsPath || './locales'
+    let srcPathRel = detected.srcPath || './src'
+
+    // Convert to relative paths if absolute
+    if (path.isAbsolute(translationDir)) {
+      translationDir = './' + path.relative(cwd, translationDir)
+    }
+    if (path.isAbsolute(srcPathRel)) {
+      srcPathRel = './' + path.relative(cwd, srcPathRel)
+    }
+
+    // If translation path is a file, use its directory
+    if (translationDir.endsWith('.json')) {
+      translationDir = path.dirname(translationDir)
+    }
+
+    console.log(c.dim(`  Translation directory: ${translationDir}`))
+    console.log(c.dim(`  Source path: ${srcPathRel}`))
 
     // Detect i18n patterns
     let detectedPattern = null
@@ -175,8 +201,8 @@ async function run() {
 
     // Generate config content
     const configContent = generateConfigContent({
-      translationFile,
-      srcPath,
+      translationFile: translationDir,
+      srcPath: srcPathRel,
       pattern: detectedPattern,
     })
 
@@ -255,21 +281,25 @@ async function run() {
 
   // === EXTRACT MODE ===
   if (options.extract) {
-    const absTranslations = path.resolve(process.cwd(), translationTarget)
+    let absTranslations = path.resolve(process.cwd(), translationTarget)
     const absSrc = path.resolve(process.cwd(), srcPath)
-
-    // For extract mode, translation file must be a file, not a directory
-    const isDir = fs.existsSync(absTranslations) && fs.statSync(absTranslations).isDirectory()
-
-    if (isDir) {
-      console.error('Error: --extract mode requires a specific translation file, not a directory')
-      console.error('Please specify a single JSON file with -t, --translation-file')
-      process.exit(1)
-    }
 
     // Ensure config is loaded (use defaults if not)
     if (!config) {
       config = mergeWithDefaults({})
+    }
+
+    // Check if translations target is a directory
+    const isDir = fs.existsSync(absTranslations) && fs.statSync(absTranslations).isDirectory()
+
+    if (isDir) {
+      // Use targetLanguage from config to determine the file
+      const targetLang = config.extract?.targetLanguage || 'en'
+      absTranslations = path.join(absTranslations, `${targetLang}.json`)
+
+      if (options.verbose) {
+        console.log(c.dim(`${symbols.info} Using translation file: ${absTranslations}`))
+      }
     }
 
     console.log(c.strong('\n=== String Extraction Mode ===\n'))

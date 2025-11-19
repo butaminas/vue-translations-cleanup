@@ -36,9 +36,10 @@ describe('extract-strings/autoTranslate', () => {
           .mockResolvedValueOnce({ translation: 'Welt', confidence: 0.92 }),
       }
 
+      // Map is text -> key
       const newKeys = new Map([
-        ['new_key1', 'Hello'],
-        ['new_key2', 'World'],
+        ['Hello', 'new_key1'],
+        ['World', 'new_key2'],
       ])
 
       const { autoTranslate } = await import('@/extract-strings/autoTranslate')
@@ -91,9 +92,10 @@ describe('extract-strings/autoTranslate', () => {
           .mockResolvedValueOnce({ translation: 'Welt', confidence: 0.9 }),
       }
 
+      // Map is text -> key
       const newKeys = new Map([
-        ['key1', 'Hello'],
-        ['key2', 'World'],
+        ['Hello', 'key1'],
+        ['World', 'key2'],
       ])
 
       const { autoTranslate } = await import('@/extract-strings/autoTranslate')
@@ -134,9 +136,10 @@ describe('extract-strings/autoTranslate', () => {
           .mockResolvedValueOnce({ translation: 'Abbrechen', confidence: 0.92 }),
       }
 
+      // Map is text -> key
       const newKeys = new Map([
-        ['common.buttons.submit', 'Submit'],
-        ['common.buttons.cancel', 'Cancel'],
+        ['Submit', 'common.buttons.submit'],
+        ['Cancel', 'common.buttons.cancel'],
       ])
 
       const { autoTranslate } = await import('@/extract-strings/autoTranslate')
@@ -182,8 +185,9 @@ describe('extract-strings/autoTranslate', () => {
           .mockResolvedValueOnce({ translation: 'Hola', confidence: 0.94 }),
       }
 
+      // Map is text -> key
       const newKeys = new Map([
-        ['greeting', 'Hello'],
+        ['Hello', 'greeting'],
       ])
 
       const { autoTranslate } = await import('@/extract-strings/autoTranslate')
@@ -231,9 +235,10 @@ describe('extract-strings/autoTranslate', () => {
           .mockResolvedValueOnce({ translation: 'Welt', confidence: 0.9 }),
       }
 
+      // Map is text -> key
       const newKeys = new Map([
-        ['key1', 'Hello'],
-        ['key2', 'World'],
+        ['Hello', 'key1'],
+        ['World', 'key2'],
       ])
 
       const { autoTranslate } = await import('@/extract-strings/autoTranslate')
@@ -266,8 +271,9 @@ describe('extract-strings/autoTranslate', () => {
           .mockResolvedValueOnce({ translation: 'Wert', confidence: 0.9 }),
       }
 
+      // Map is text -> key
       const newKeys = new Map([
-        ['key', 'Value'],
+        ['Value', 'key'],
       ])
 
       const { autoTranslate } = await import('@/extract-strings/autoTranslate')
