@@ -54,7 +54,9 @@ Manually finding and converting hundreds of strings is tedious.
 
 ## Supported i18n Patterns
 
-The tool detects all common i18n usage patterns:
+### Cleanup Mode
+
+Cleanup mode detects **all common vue-i18n patterns**:
 
 **Function Calls:**
 ```javascript
@@ -81,8 +83,23 @@ t('greeting')
 <i18n-t keypath="key" />
 
 <!-- Interpolation -->
-{{ $t('key') }}
+\{\{ $t('key') \}\}
 ```
+
+### Extract Mode
+
+Extract mode currently supports **`t()` and `$t()` only**:
+
+```javascript
+// Supported patterns
+t('key')
+$t('key')
+const { t } = useI18n()
+```
+
+::: tip Future Support
+Support for additional patterns (`rt`, `tc`, `v-t`, `i18n-t`) in extract mode is planned for future releases.
+:::
 
 ## How It Works
 
