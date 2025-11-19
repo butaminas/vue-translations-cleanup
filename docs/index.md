@@ -44,18 +44,36 @@ features:
 
 ## Quick Start
 
+### 1. Generate Config (Recommended)
+
+```bash
+npx vue-translations-cleanup --init
+```
+
+This auto-detects your project and creates a config file:
+
+```
+=== Config Generator ===
+
+ℹ Detecting project configuration...
+  Translation directory: ./locales
+  Source path: ./app
+  Default locale: en
+  i18n config: nuxt (using $t)
+
+✓ Config file created: vue-translations-cleanup.config.ts
+```
+
+### 2. Run Cleanup or Extract
+
 ::: code-group
 
-```bash [npm]
+```bash [Cleanup]
 npx vue-translations-cleanup
 ```
 
-```bash [yarn]
-yarn dlx vue-translations-cleanup
-```
-
-```bash [pnpm]
-pnpm dlx vue-translations-cleanup
+```bash [Extract]
+npx vue-translations-cleanup --extract
 ```
 
 :::
@@ -110,7 +128,7 @@ npx vue-translations-cleanup --extract -t ./locales/en.json -s ./src
 **After:**
 ```vue
 <template>
-  <button>{{ t('common.submit') }}</button>
+  <button>\{\{ t('common.submit') \}\}</button>
   <input :placeholder="t('form.name_placeholder')" />
 </template>
 

@@ -113,7 +113,7 @@ Converts raw strings to i18n calls:
 <button>Submit</button>
 
 <!-- After -->
-<button>{{ t('common.submit') }}</button>
+<button>\{\{ t('common.submit') \}\}</button>
 ```
 
 **Attributes:**

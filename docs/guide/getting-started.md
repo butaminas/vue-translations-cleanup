@@ -131,7 +131,7 @@ npx vue-translations-cleanup --extract --dry-run --verbose
 **What happens:**
 - Scans your Vue templates and scripts for hardcoded strings
 - Generates semantic translation keys (e.g., "Submit" → "common.submit")
-- Replaces strings with i18n calls (e.g., `{{ t('common.submit') }}`)
+- Replaces strings with i18n calls (e.g., `$t('common.submit')`)
 - Auto-injects imports when needed
 - Updates your translation JSON file with new keys
 
