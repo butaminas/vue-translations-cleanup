@@ -13,57 +13,30 @@ Extract mode helps you:
 
 Perfect for migrating legacy code or adding i18n to existing projects.
 
-## Basic Usage
+## Quick Start
 
-```bash
-# Specify translation file (required for extract mode)
-npx vue-translations-cleanup --extract -t ./locales/en.json -s ./src
+1. **Initialize config** (recommended):
+   ```bash
+   npx vue-translations-cleanup --init
+   ```
 
-# With config file (enables auto-detection)
-npx vue-translations-cleanup --extract --config ./my-config.ts
+2. **Run extraction**:
+   ```bash
+   npx vue-translations-cleanup --extract
+   ```
 
-# Preview only
-npx vue-translations-cleanup --extract -t ./locales/en.json -s ./src --dry-run --verbose
-```
+3. **Preview first** (optional):
+   ```bash
+   npx vue-translations-cleanup --extract --dry-run --verbose
+   ```
 
-::: warning Important
-Extract mode requires specifying which translation file to update.
-
-**Option 1 (Direct):** Specify a single file explicitly:
-```bash
--t ./locales/en.json
-```
-
-**Option 2 (Config file):** Use a config with `translationFile` directory and `extract.targetLanguage`:
-```typescript
-// Config determines which file (e.g., 'en' → locales/en.json)
-translationFile: './locales'
-extract: { targetLanguage: 'en' }
-```
+::: tip Auto-detection
+The tool automatically detects your project structure (Nuxt, Vite) and configures paths for you.
 :::
 
-## Prerequisites
+## Manual Configuration
 
-::: warning Important
-Your project must have **at least one existing i18n reference** for the tool to detect how i18n is used.
-:::
-
-Add a minimal i18n reference:
-
-**Vue 3 Composition API:**
-```vue
-<script setup>
-const { t } = useI18n()
-const example = t('hello')
-</script>
-```
-
-**Nuxt / Options API:**
-```vue
-<template>
-  <div>{{ $t('hello') }}</div>
-</template>
-```
+If auto-detection doesn't work, see [CLI Options](/guide/cli-options) for manual path specification.
 
 ## How It Works
 
@@ -186,21 +159,7 @@ The tool uses smart heuristics to avoid false positives:
 - File paths: `"/api/users"`
 - Short technical strings: `"px"`, `"id"`
 
-### Confidence Levels
-
-Configure minimum confidence:
-
-```typescript
-{
-  extract: {
-    confidence: 'high' // 'high' | 'medium' | 'low'
-  }
-}
-```
-
-- **High**: Strict, fewer false positives (default)
-- **Medium**: Balanced approach
-- **Low**: Permissive, may include non-translatable strings
+The tool uses intelligent heuristics with high confidence by default to minimize false positives.
 
 ## Key Generation
 
@@ -308,7 +267,6 @@ AI considers:
 {
   extract: {
     targetLanguage: 'en',
-    confidence: 'high',
     keyFormat: 'snake_case',
     maxKeyLength: 50,
 
@@ -353,15 +311,19 @@ For non-standard i18n setups:
 ### Basic Extraction
 
 ```bash
-# Specify translation file and source path
-npx vue-translations-cleanup --extract -t ./locales/en.json -s ./src
+# Auto-detect configuration (after running --init)
+npx vue-translations-cleanup --extract
 ```
+
+::: tip Manual Paths
+If auto-detection doesn't work, see [CLI Options](/guide/cli-options) for manual path specification.
+:::
 
 ### Preview Changes
 
 ```bash
 # Dry run to see what would be extracted
-npx vue-translations-cleanup --extract -t ./locales/en.json -s ./src --dry-run --verbose
+npx vue-translations-cleanup --extract --dry-run --verbose
 ```
 
 Output:
@@ -401,7 +363,6 @@ const result = await runExtraction({
   srcPath: './src',
   config: {
     extract: {
-      confidence: 'high',
       keyFormat: 'snake_case'
     }
   },
@@ -422,25 +383,18 @@ Always preview first:
 npx vue-translations-cleanup --extract --dry-run --verbose
 ```
 
-### 2. Process Incrementally
-
-Extract one directory at a time:
-```bash
-npx vue-translations-cleanup --extract -s ./src/components/auth
-```
-
-### 3. Review Changes
+### 2. Review Changes
 
 Check git diff before committing:
 ```bash
 git diff
 ```
 
-### 4. Test Thoroughly
+### 3. Test Thoroughly
 
 Run your app and test all affected pages.
 
-### 5. Use AI for Better Keys
+### 4. Use AI for Better Keys
 
 AI generates more semantic, maintainable keys.
 
@@ -462,33 +416,30 @@ Complex template expressions may not be extracted:
 <!-- Not extracted -->
 ```
 
-### Existing i18n Required
-
-At least one i18n reference must exist in your codebase.
-
 ## Troubleshooting
 
 ### "No i18n patterns found"
 
-Add at least one i18n reference:
-```vue
-<script setup>
-const { t } = useI18n()
-t('hello')
-</script>
-```
+The tool couldn't detect how i18n is configured in your project.
+
+**Solutions:**
+1. Ensure you have `@nuxtjs/i18n` or `vue-i18n` properly configured
+2. Check `nuxt.config.ts` or `vite.config.ts` for i18n setup
+3. Add at least one i18n function call in your code (e.g., `$t('hello')` or `const { t } = useI18n()`)
+4. Use a config file to specify custom i18n patterns
 
 ### No strings detected
 
-- Check confidence level (try 'medium' or 'low')
 - Verify files match the scan pattern
 - Use `--verbose` to see what's being scanned
+- Check if strings are already using i18n functions
+- Ensure strings aren't filtered out (URLs, CSS classes, etc.)
 
 ### Too many false positives
 
-- Increase confidence to 'high'
-- Add patterns to `excludePatterns`
-- Review and adjust manually
+- Add patterns to `excludePatterns` config
+- Use `ignorePattern` or `ignoreText` to filter specific strings
+- Review and adjust the generated keys manually
 
 ## Next Steps
 

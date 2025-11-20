@@ -334,7 +334,6 @@ export default {
 export default {
   extract: {
     targetLanguage: 'en',
-    confidence: 'high',
     keyFormat: 'snake_case'
   },
 
@@ -346,7 +345,10 @@ export default {
     timeout: 30000,
 
     // Auto-translation: just add target languages
-    languages: ['de', 'fr', 'es', 'it', 'nl']
+    languages: ['de', 'fr', 'es', 'it', 'nl'],
+
+    // Exclude brand names, legal terms, etc.
+    excludeFromTranslation: ['app.name', 'company.*']
   }
 }
 ```

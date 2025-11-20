@@ -47,42 +47,32 @@ export default defineNuxtConfig({
 
 ## Usage
 
-### Cleanup Mode
+### Step 1: Initialize Config
 
 ```bash
-# Auto-detect (works out of the box!)
-npx vue-translations-cleanup
-
-# Or specify paths
-npx vue-translations-cleanup -t ./locales/en.json -s ./src
+npx vue-translations-cleanup --init
 ```
 
 Auto-detection finds:
 - Source path: `./src` or `./app`
 - Translations: `./locales` or `./i18n/locales`
+- i18n pattern: Detects `$t()` from Nuxt config
 
-### Extract Mode
-
-**First, add at least one i18n reference:**
-
-```vue
-<!-- pages/index.vue -->
-<template>
-  <div>
-    <h1>{{ $t('home.title') }}</h1>
-  </div>
-</template>
-```
-
-**Then run extraction:**
+### Step 2: Cleanup Mode
 
 ```bash
-# Specify translation file for Nuxt
-npx vue-translations-cleanup --extract -t ./locales/en.json -s ./src
-
-# Or with auto-detected paths
-npx vue-translations-cleanup --extract -t ./locales/en.json
+npx vue-translations-cleanup
 ```
+
+### Step 3: Extract Mode
+
+```bash
+npx vue-translations-cleanup --extract
+```
+
+::: tip Manual Paths
+If auto-detection doesn't work, see [CLI Options](/guide/cli-options) for manual path specification.
+:::
 
 ## Example Workflow
 
@@ -135,7 +125,7 @@ Add hardcoded strings:
 Extract them:
 
 ```bash
-npx vue-translations-cleanup --extract -t ./locales/en.json -s ./src
+npx vue-translations-cleanup --extract
 ```
 
 Result:

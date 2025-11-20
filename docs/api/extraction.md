@@ -54,7 +54,6 @@ import { mergeWithDefaults } from 'vue-translations-cleanup/config'
 const config = mergeWithDefaults({
   extract: {
     targetLanguage: 'en',
-    confidence: 'high',
   },
 })
 

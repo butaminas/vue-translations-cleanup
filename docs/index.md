@@ -83,7 +83,8 @@ npx vue-translations-cleanup --extract
 Remove unused translation keys from your JSON files:
 
 ```bash
-npx vue-translations-cleanup -t ./locales/en.json -s ./src
+# After running --init (auto-detects paths)
+npx vue-translations-cleanup
 ```
 
 **Before:**
@@ -113,8 +114,8 @@ npx vue-translations-cleanup -t ./locales/en.json -s ./src
 Convert raw strings to i18n automatically:
 
 ```bash
-# Specify translation file for extract mode
-npx vue-translations-cleanup --extract -t ./locales/en.json -s ./src
+# After running --init (auto-detects paths)
+npx vue-translations-cleanup --extract
 ```
 
 **Before:**
@@ -143,8 +144,8 @@ Extract strings and automatically translate to multiple languages using **local 
 
 **Setup** (one-time):
 ```bash
-# Install Ollama (local AI)
-curl https://ollama.ai/install.sh | sh
+# Install Ollama (local AI) - see https://docs.ollama.com/quickstart
+curl https://ollama.com/install.sh | sh
 
 # Pull a model
 ollama pull codellama
@@ -164,11 +165,8 @@ export default {
 
 **Run extraction**:
 ```bash
-# With config file, you can use auto-detect
-npx vue-translations-cleanup --extract --config ./vue-translations-cleanup.config.ts
-
-# Or specify paths directly
-npx vue-translations-cleanup --extract -t ./locales/en.json -s ./src
+# Auto-detect with config file
+npx vue-translations-cleanup --extract
 ```
 
 **Result** - Automatically creates translated files:

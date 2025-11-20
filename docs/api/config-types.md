@@ -32,13 +32,14 @@ interface ToolConfig {
 ```typescript
 interface ExtractConfig {
   targetLanguage?: string
-  confidence?: 'high' | 'medium' | 'low'
   i18nPatterns?: I18nCustomPattern[]
   includeAttributes?: string[]
   excludePatterns?: string[]
   keyFormat?: 'snake_case' | 'camelCase' | 'kebab-case' | 'dot.case'
   maxKeyLength?: number
   interactive?: boolean
+  ignorePattern?: string
+  ignoreText?: string[]
 }
 ```
 
@@ -53,8 +54,8 @@ interface AIConfig {
   apiKey?: string
   timeout?: number
   headers?: Record<string, string>
-  autoTranslate?: boolean
   languages?: string[]
+  excludeFromTranslation?: string[]
 }
 ```
 
