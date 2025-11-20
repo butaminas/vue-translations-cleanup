@@ -11,6 +11,8 @@ import { loadConfig } from './config/loader'
 import { mergeWithDefaults, validateConfig } from './config/validator'
 import { runExtraction } from './extract-strings/orchestrator'
 import { detectI18nPatterns } from './extract-strings/i18nPatternDetector'
+import { translateMissingKeys } from './extract-strings/autoTranslate'
+import { createAIClient } from './ai/client'
 import type { ToolConfig } from './config/types'
 
 function readPkgVersion(): string {
@@ -36,6 +38,7 @@ program
   .option('-c, --config <path>', 'Path to config file (vue-translations-cleanup.config.{ts,mjs,json})')
   .option('--init', 'Generate a config file with detected settings')
   .option('--extract', 'Extract raw strings and create i18n keys (instead of cleanup)')
+  .option('--translate', 'Translate missing/untranslated keys to target languages (requires AI)')
   .option('-n, --dry-run', 'Show what would be removed/changed without making changes')
   .option('--no-backup', 'Skip creating backup file')
   .option('-v, --verbose', 'Show detailed output')
@@ -253,8 +256,9 @@ async function run() {
     }
 
     console.log(c.dim('\nYou can now run:'))
-    console.log(c.dim(`  npx vue-translations-cleanup          # cleanup mode`))
-    console.log(c.dim(`  npx vue-translations-cleanup --extract # extract mode`))
+    console.log(c.dim(`  npx vue-translations-cleanup            # cleanup mode`))
+    console.log(c.dim(`  npx vue-translations-cleanup --extract  # extract mode`))
+    console.log(c.dim(`  npx vue-translations-cleanup --translate # translate mode (requires AI)`))
 
     return
   }
@@ -319,6 +323,106 @@ async function run() {
     console.error('  -s, --src-path <path-to-source>')
     console.error('  or provide a config file with --config')
     process.exit(1)
+  }
+
+  // === TRANSLATE MODE ===
+  if (options.translate) {
+    let absTranslations = path.resolve(process.cwd(), translationTarget)
+
+    // Ensure config is loaded (use defaults if not)
+    if (!config) {
+      config = mergeWithDefaults({})
+    }
+
+    // Check if AI is enabled
+    if (!config.ai?.enabled || !config.ai?.languages || config.ai.languages.length === 0) {
+      console.error(c.error(`\n${symbols.error} Translation mode requires AI to be enabled with target languages.`))
+      console.error(c.dim('\nPlease configure AI in your config file:'))
+      console.error(c.dim('  ai: {'))
+      console.error(c.dim('    enabled: true,'))
+      console.error(c.dim('    provider: \'ollama\', // or \'anthropic\', \'openai\', etc.'))
+      console.error(c.dim('    languages: [\'de\', \'fr\', \'es\'], // target languages'))
+      console.error(c.dim('  }'))
+      process.exit(1)
+    }
+
+    // Check if translations target is a directory
+    const isDir = fs.existsSync(absTranslations) && fs.statSync(absTranslations).isDirectory()
+
+    if (isDir) {
+      // Use targetLanguage from config to determine the source file
+      const targetLang = config.extract?.targetLanguage || 'en'
+      absTranslations = path.join(absTranslations, `${targetLang}.json`)
+
+      if (options.verbose) {
+        console.log(c.dim(`${symbols.info} Using source translation file: ${absTranslations}`))
+      }
+    }
+
+    // Check if source translation file exists
+    if (!fs.existsSync(absTranslations)) {
+      console.error(c.error(`\n${symbols.error} Source translation file not found: ${absTranslations}`))
+      process.exit(1)
+    }
+
+    console.log(c.strong('\n=== Translation Sync Mode ===\n'))
+    console.log(c.dim(`Source file: ${absTranslations}`))
+    console.log(c.dim(`Target languages: ${config.ai.languages.join(', ')}\n`))
+
+    try {
+      // Create AI client
+      const aiClient = createAIClient(config.ai)
+
+      if (!aiClient) {
+        console.error(c.error(`\n${symbols.error} Failed to create AI client. Please check your AI configuration.`))
+        process.exit(1)
+      }
+
+      // Run translation
+      const result = await translateMissingKeys({
+        sourceFile: absTranslations,
+        targetLanguages: config.ai.languages,
+        aiClient,
+        sourceLanguage: config.extract?.targetLanguage || 'en',
+        excludePatterns: config.ai.excludeFromTranslation,
+        backup: options.backup,
+        verbose: options.verbose,
+      })
+
+      // Display results
+      if (result.translatedLanguages.length > 0) {
+        console.log(c.success(`\n${symbols.success} Translation completed in ${result.duration}ms`))
+        console.log(c.dim('\nSummary:'))
+        for (const [lang, count] of Object.entries(result.translationsPerLanguage)) {
+          if (count > 0) {
+            console.log(c.dim(`  ${lang}: ${count} keys translated`))
+          }
+        }
+
+        if (result.errors.length > 0) {
+          console.log(c.warn(`\n${symbols.warn} Errors encountered:`))
+          for (const { language, error } of result.errors) {
+            console.error(c.dim(`  ${language}: ${error}`))
+          }
+        }
+      }
+      else {
+        console.log(c.info(`\n${symbols.info} All translations are up to date`))
+
+        if (result.errors.length > 0) {
+          console.log(c.warn(`\n${symbols.warn} Errors encountered:`))
+          for (const { language, error } of result.errors) {
+            console.error(c.dim(`  ${language}: ${error}`))
+          }
+        }
+      }
+    }
+    catch (error) {
+      console.error(c.error(`\n${symbols.error} Translation failed:`), error)
+      process.exit(1)
+    }
+
+    return
   }
 
   // === EXTRACT MODE ===

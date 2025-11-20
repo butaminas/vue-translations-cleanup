@@ -247,6 +247,7 @@ export async function runExtraction(options: ExtractOptions): Promise<ExtractRes
             aiClient: aiClientForTranslation,
             sourceLanguage: extractConfig.targetLanguage || 'en',
             newKeys: keyMap,
+            excludePatterns: config.ai.excludeFromTranslation,
             backup: config.backup !== false,
             verbose,
           })

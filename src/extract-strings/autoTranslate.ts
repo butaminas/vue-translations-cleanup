@@ -30,6 +30,11 @@ export interface AutoTranslateOptions {
   newKeys: Map<string, string>
 
   /**
+   * Keys to exclude from translation (glob patterns supported)
+   */
+  excludePatterns?: string[]
+
+  /**
    * Create backups before modifying files
    */
   backup?: boolean
@@ -152,6 +157,32 @@ function getCategoryFromKey(key: string): string {
 }
 
 /**
+ * Check if a key matches any exclude pattern (supports glob patterns)
+ */
+function matchesExcludePattern(key: string, excludePatterns: string[] = []): boolean {
+  if (!excludePatterns || excludePatterns.length === 0) {
+    return false
+  }
+
+  for (const pattern of excludePatterns) {
+    // Convert glob pattern to regex
+    // Replace * with .* (any characters) and ? with . (single character)
+    // Escape other special regex characters
+    const regexPattern = pattern
+      .replace(/[.+^${}()|[\]\\]/g, '\\$&') // Escape special chars
+      .replace(/\*/g, '.*') // * -> .*
+      .replace(/\?/g, '.') // ? -> .
+
+    const regex = new RegExp(`^${regexPattern}$`)
+    if (regex.test(key)) {
+      return true
+    }
+  }
+
+  return false
+}
+
+/**
  * Translate all missing keys from source language to target languages
  */
 export async function translateMissingKeys(options: Omit<AutoTranslateOptions, 'newKeys'>): Promise<AutoTranslateResult> {
@@ -161,6 +192,7 @@ export async function translateMissingKeys(options: Omit<AutoTranslateOptions, '
     targetLanguages,
     aiClient,
     sourceLanguage,
+    excludePatterns = [],
     backup = true,
     verbose = false,
   } = options
@@ -229,8 +261,15 @@ export async function translateMissingKeys(options: Omit<AutoTranslateOptions, '
     // Find missing keys
     const targetKeys = flattenTranslations(targetTranslations)
     const missingKeys = new Map<string, string>()
+    let excludedCount = 0
 
     for (const [key, sourceValue] of sourceKeys) {
+      // Skip if key matches exclude patterns
+      if (matchesExcludePattern(key, excludePatterns)) {
+        excludedCount++
+        continue
+      }
+
       const targetValue = targetKeys.get(key)
       // Add to missing if: doesn't exist OR is same as source (untranslated)
       if (!targetValue || targetValue === sourceValue) {
@@ -240,13 +279,15 @@ export async function translateMissingKeys(options: Omit<AutoTranslateOptions, '
 
     if (missingKeys.size === 0) {
       if (verbose) {
-        console.log(`  ${targetLang}: All keys translated ✓`)
+        const excludeMsg = excludedCount > 0 ? ` (${excludedCount} excluded)` : ''
+        console.log(`  ${targetLang}: All keys translated ✓${excludeMsg}`)
       }
       continue
     }
 
     if (verbose) {
-      console.log(`\n  ${targetLang}: Found ${missingKeys.size} missing/untranslated keys`)
+      const excludeMsg = excludedCount > 0 ? ` (${excludedCount} excluded)` : ''
+      console.log(`\n  ${targetLang}: Found ${missingKeys.size} missing/untranslated keys${excludeMsg}`)
     }
 
     // Translate missing keys using the existing autoTranslate logic
@@ -325,6 +366,7 @@ export async function autoTranslate(options: AutoTranslateOptions): Promise<Auto
     aiClient,
     sourceLanguage,
     newKeys,
+    excludePatterns = [],
     backup = true,
     verbose = false,
   } = options
@@ -347,6 +389,7 @@ export async function autoTranslate(options: AutoTranslateOptions): Promise<Auto
       targetLanguages,
       aiClient,
       sourceLanguage,
+      excludePatterns,
       backup,
       verbose,
     })
@@ -404,6 +447,14 @@ export async function autoTranslate(options: AutoTranslateOptions): Promise<Auto
       // Translate each new key
       // Note: newKeys Map is text -> key (e.g., "save" -> "testComp.save")
       for (const [sourceText, key] of newKeys.entries()) {
+        // Skip if key matches exclude patterns
+        if (matchesExcludePattern(key, excludePatterns)) {
+          if (verbose) {
+            console.log(`    ${key}: skipped (excluded)`)
+          }
+          continue
+        }
+
         // Skip if translation already exists
         const existing = getNestedValue(targetTranslations, key)
         if (existing) {

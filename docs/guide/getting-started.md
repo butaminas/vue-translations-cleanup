@@ -69,8 +69,9 @@ npx vue-translations-cleanup --init
 ✓ Config file created: vue-translations-cleanup.config.ts
 
 You can now run:
-  npx vue-translations-cleanup          # cleanup mode
-  npx vue-translations-cleanup --extract # extract mode
+  npx vue-translations-cleanup            # cleanup mode
+  npx vue-translations-cleanup --extract  # extract mode
+  npx vue-translations-cleanup --translate # translate mode (requires AI)
 ```
 
 ::: tip When to skip --init
@@ -168,6 +169,74 @@ Without a config file, you must specify a specific translation file (e.g., `-t .
 ✓ Strings extracted: 18
 ✓ Files modified: 8
 ```
+
+### Step 4: Translate Mode (Optional)
+
+Automatically translate missing or untranslated keys to multiple languages using AI:
+
+```bash
+# Requires config file with AI enabled
+npx vue-translations-cleanup --translate
+
+# Preview changes first
+npx vue-translations-cleanup --translate --dry-run --verbose
+```
+
+**What happens:**
+- Compares source language translations with target languages
+- Identifies missing keys or keys with identical values (untranslated copies)
+- Uses AI to translate them to all configured target languages
+- Preserves existing translations
+- Creates backups before modifying files
+
+**Prerequisites:**
+- AI must be enabled in config file
+- Target languages must be configured
+- Source translation file must exist
+
+**Config Example:**
+```typescript
+{
+  ai: {
+    enabled: true,
+    provider: 'ollama', // or 'anthropic', 'openai', etc.
+    languages: ['de', 'fr', 'es'], // target languages
+    excludeFromTranslation: ['app.name', 'company.*'], // optional exclusions
+  },
+  extract: {
+    targetLanguage: 'en', // source language
+  },
+}
+```
+
+**Output:**
+```
+=== Translation Sync Mode ===
+
+Source file: /project/locales/en.json
+Target languages: de, fr, es
+
+  de: Found 5 missing/untranslated keys (2 excluded)
+    common.submit: "Absenden" (confidence: 0.95)
+    user.profile: "Profil" (confidence: 0.92)
+    ...
+
+  fr: Found 3 missing/untranslated keys
+    common.submit: "Soumettre" (confidence: 0.94)
+    ...
+
+✓ Translation completed in 2500ms
+
+Summary:
+  de: 5 keys translated
+  fr: 3 keys translated
+  es: 4 keys translated
+```
+
+::: tip Exclude Keys
+Use `excludeFromTranslation` to prevent translation of brand names, company names, legal terms, etc.
+Supports glob patterns like `company.*` or `legal.terms.*`.
+:::
 
 ## Auto-Detection
 
@@ -281,6 +350,12 @@ npx vue-translations-cleanup
 | Option | Description | Default |
 |--------|-------------|---------|
 | `--extract` | Enable extraction mode | Cleanup mode |
+
+### Translate Mode
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--translate` | Enable translation sync mode | Cleanup mode |
 
 ## Next Steps
 

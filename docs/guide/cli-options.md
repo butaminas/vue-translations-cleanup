@@ -20,6 +20,7 @@ Complete reference for command-line options.
 | Option | Description | Default |
 |--------|-------------|---------|
 | `--extract` | Enable extraction mode | Cleanup mode |
+| `--translate` | Enable translation sync mode (requires AI) | Cleanup mode |
 
 ## Cleanup Mode Options
 
@@ -64,6 +65,22 @@ npx vue-translations-cleanup --extract --dry-run
 npx vue-translations-cleanup --extract -v
 ```
 
+### Translate Mode
+
+```bash
+# Translate missing/untranslated keys (requires AI config)
+npx vue-translations-cleanup --translate
+
+# With config
+npx vue-translations-cleanup --translate -c ./config.ts
+
+# Preview
+npx vue-translations-cleanup --translate --dry-run
+
+# Verbose output
+npx vue-translations-cleanup --translate -v
+```
+
 ## Option Details
 
 ### `--translation-file` / `-t`
@@ -103,6 +120,43 @@ Enable extraction mode instead of cleanup mode.
 
 ```bash
 npx vue-translations-cleanup --extract
+```
+
+### `--translate`
+
+Enable translation sync mode to automatically translate missing or untranslated keys.
+
+**Requirements:**
+- AI must be enabled in config (`ai.enabled: true`)
+- Target languages must be configured (`ai.languages: [...]`)
+- Source translation file must exist
+
+**What it does:**
+- Compares source language with target languages
+- Identifies missing keys
+- Identifies keys with identical values (untranslated copies)
+- Translates them using AI
+- Preserves existing translations
+
+```bash
+# Translate all missing keys
+npx vue-translations-cleanup --translate
+
+# Preview what would be translated
+npx vue-translations-cleanup --translate --dry-run -v
+```
+
+**Excluding keys:**
+Use `ai.excludeFromTranslation` in config to exclude specific keys:
+
+```typescript
+{
+  ai: {
+    enabled: true,
+    languages: ['de', 'fr', 'es'],
+    excludeFromTranslation: ['app.name', 'company.*', 'legal.terms.*'],
+  }
+}
 ```
 
 ### `--dry-run` / `-n`

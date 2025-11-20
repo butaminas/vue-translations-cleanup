@@ -131,6 +131,13 @@ export interface AIConfig {
    * @default []
    */
   languages?: string[]
+
+  /**
+   * Keys to exclude from auto-translation (e.g., ['app.name', 'company.*'])
+   * Supports glob patterns (* for any characters, ? for single character)
+   * @default []
+   */
+  excludeFromTranslation?: string[]
 }
 
 export interface CleanupConfig {

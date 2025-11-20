@@ -104,6 +104,11 @@ const config: ToolConfig = {
     // The source language is determined by extract.targetLanguage (default: 'en')
     // Leave empty to skip auto-translation
     languages: [],
+
+    // Keys to exclude from auto-translation (supports glob patterns)
+    // Examples: ['app.name', 'company.*', 'legal.terms.*']
+    // Use this to prevent translation of brand names, company names, legal terms, etc.
+    excludeFromTranslation: [],
   },
 
   // Cleanup configuration (applies to both cleanup and extract modes)

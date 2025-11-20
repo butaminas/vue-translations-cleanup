@@ -330,5 +330,282 @@ describe('extract-strings/autoTranslate', () => {
       const deTranslations = JSON.parse(vol.readFileSync('/test/locales/de.json', 'utf-8'))
       expect(deTranslations).toEqual({ key: 'Wert' })
     })
+
+    it('should skip excluded keys from translation', async () => {
+      vol.writeFileSync('/test/locales/en.json', JSON.stringify({
+        'app.name': 'My App',
+        'common.submit': 'Submit',
+        'company.legal.notice': 'Legal Notice',
+      }))
+
+      const mockAIClient = {
+        translateText: vi.fn()
+          .mockResolvedValueOnce({ translation: 'Absenden', confidence: 0.95 }),
+      }
+
+      const newKeys = new Map([
+        ['My App', 'app.name'],
+        ['Submit', 'common.submit'],
+        ['Legal Notice', 'company.legal.notice'],
+      ])
+
+      const { autoTranslate } = await import('@/extract-strings/autoTranslate')
+
+      await autoTranslate({
+        sourceFile: '/test/locales/en.json',
+        targetLanguages: ['de'],
+        aiClient: mockAIClient as any,
+        sourceLanguage: 'en',
+        newKeys,
+        excludePatterns: ['app.name', 'company.*'],
+        backup: false,
+        verbose: false,
+      })
+
+      // Only common.submit should be translated
+      expect(mockAIClient.translateText).toHaveBeenCalledTimes(1)
+      expect(mockAIClient.translateText).toHaveBeenCalledWith('Submit', 'de', {
+        key: 'common.submit',
+        sourceLanguage: 'en',
+        category: 'common',
+      })
+
+      const deTranslations = JSON.parse(vol.readFileSync('/test/locales/de.json', 'utf-8'))
+      expect(deTranslations).toEqual({
+        common: {
+          submit: 'Absenden',
+        },
+      })
+    })
+
+    it('should translate identical values (untranslated copies)', async () => {
+      vol.writeFileSync('/test/locales/en.json', JSON.stringify({
+        greeting: 'Hello',
+        farewell: 'Goodbye',
+      }))
+
+      vol.writeFileSync('/test/locales/de.json', JSON.stringify({
+        greeting: 'Hello', // Same as source - needs translation
+        farewell: 'Auf Wiedersehen', // Already translated
+      }))
+
+      const mockAIClient = {
+        translateText: vi.fn()
+          .mockResolvedValueOnce({ translation: 'Hallo', confidence: 0.95 }),
+      }
+
+      const { autoTranslate } = await import('@/extract-strings/autoTranslate')
+
+      const result = await autoTranslate({
+        sourceFile: '/test/locales/en.json',
+        targetLanguages: ['de'],
+        aiClient: mockAIClient as any,
+        sourceLanguage: 'en',
+        newKeys: new Map(), // Check existing keys
+        backup: false,
+        verbose: false,
+      })
+
+      // Should only translate greeting (identical value)
+      expect(result.translationsPerLanguage.de).toBe(1)
+      expect(mockAIClient.translateText).toHaveBeenCalledTimes(1)
+      expect(mockAIClient.translateText).toHaveBeenCalledWith('Hello', 'de', {
+        key: 'greeting',
+        sourceLanguage: 'en',
+        category: '',
+      })
+
+      const deTranslations = JSON.parse(vol.readFileSync('/test/locales/de.json', 'utf-8'))
+      expect(deTranslations).toEqual({
+        greeting: 'Hallo',
+        farewell: 'Auf Wiedersehen', // Preserved
+      })
+    })
+  })
+
+  describe('translateMissingKeys', () => {
+    it('should translate missing keys in target languages', async () => {
+      vol.writeFileSync('/test/locales/en.json', JSON.stringify({
+        common: {
+          submit: 'Submit',
+          cancel: 'Cancel',
+        },
+      }))
+
+      vol.writeFileSync('/test/locales/de.json', JSON.stringify({
+        common: {
+          submit: 'Absenden', // Already translated
+        },
+      }))
+
+      const mockAIClient = {
+        translateText: vi.fn()
+          .mockResolvedValueOnce({ translation: 'Abbrechen', confidence: 0.92 }),
+      }
+
+      const { translateMissingKeys } = await import('@/extract-strings/autoTranslate')
+
+      const result = await translateMissingKeys({
+        sourceFile: '/test/locales/en.json',
+        targetLanguages: ['de'],
+        aiClient: mockAIClient as any,
+        sourceLanguage: 'en',
+        backup: false,
+        verbose: false,
+      })
+
+      expect(result.translatedLanguages).toContain('de')
+      expect(result.translationsPerLanguage.de).toBe(1)
+
+      const deTranslations = JSON.parse(vol.readFileSync('/test/locales/de.json', 'utf-8'))
+      expect(deTranslations).toEqual({
+        common: {
+          submit: 'Absenden', // Preserved
+          cancel: 'Abbrechen', // Added
+        },
+      })
+    })
+
+    it('should translate identical values (untranslated copies) in target languages', async () => {
+      vol.writeFileSync('/test/locales/en.json', JSON.stringify({
+        greeting: 'Hello',
+        farewell: 'Goodbye',
+        thanks: 'Thank you',
+      }))
+
+      vol.writeFileSync('/test/locales/fr.json', JSON.stringify({
+        greeting: 'Hello', // Same as English - needs translation
+        farewell: 'Au revoir', // Properly translated
+        thanks: 'Thank you', // Same as English - needs translation
+      }))
+
+      const mockAIClient = {
+        translateText: vi.fn()
+          .mockResolvedValueOnce({ translation: 'Bonjour', confidence: 0.95 })
+          .mockResolvedValueOnce({ translation: 'Merci', confidence: 0.93 }),
+      }
+
+      const { translateMissingKeys } = await import('@/extract-strings/autoTranslate')
+
+      const result = await translateMissingKeys({
+        sourceFile: '/test/locales/en.json',
+        targetLanguages: ['fr'],
+        aiClient: mockAIClient as any,
+        sourceLanguage: 'en',
+        backup: false,
+        verbose: false,
+      })
+
+      expect(result.translationsPerLanguage.fr).toBe(2)
+
+      const frTranslations = JSON.parse(vol.readFileSync('/test/locales/fr.json', 'utf-8'))
+      expect(frTranslations).toEqual({
+        greeting: 'Bonjour',
+        farewell: 'Au revoir', // Preserved
+        thanks: 'Merci',
+      })
+    })
+
+    it('should respect exclude patterns', async () => {
+      vol.writeFileSync('/test/locales/en.json', JSON.stringify({
+        'app.name': 'My App',
+        'app.version': 'v1.0.0',
+        'common.submit': 'Submit',
+        'company.legal': 'Legal Notice',
+      }))
+
+      const mockAIClient = {
+        translateText: vi.fn()
+          .mockResolvedValueOnce({ translation: 'Absenden', confidence: 0.95 }),
+      }
+
+      const { translateMissingKeys } = await import('@/extract-strings/autoTranslate')
+
+      const result = await translateMissingKeys({
+        sourceFile: '/test/locales/en.json',
+        targetLanguages: ['de'],
+        aiClient: mockAIClient as any,
+        sourceLanguage: 'en',
+        excludePatterns: ['app.*', 'company.*'],
+        backup: false,
+        verbose: false,
+      })
+
+      // Should only translate common.submit
+      expect(result.translationsPerLanguage.de).toBe(1)
+      expect(mockAIClient.translateText).toHaveBeenCalledTimes(1)
+
+      const deTranslations = JSON.parse(vol.readFileSync('/test/locales/de.json', 'utf-8'))
+      expect(deTranslations).toEqual({
+        common: {
+          submit: 'Absenden',
+        },
+      })
+    })
+
+    it('should handle multiple target languages', async () => {
+      vol.writeFileSync('/test/locales/en.json', JSON.stringify({
+        greeting: 'Hello',
+      }))
+
+      const mockAIClient = {
+        translateText: vi.fn()
+          .mockResolvedValueOnce({ translation: 'Hallo', confidence: 0.95 })
+          .mockResolvedValueOnce({ translation: 'Bonjour', confidence: 0.93 })
+          .mockResolvedValueOnce({ translation: 'Hola', confidence: 0.94 }),
+      }
+
+      const { translateMissingKeys } = await import('@/extract-strings/autoTranslate')
+
+      const result = await translateMissingKeys({
+        sourceFile: '/test/locales/en.json',
+        targetLanguages: ['de', 'fr', 'es'],
+        aiClient: mockAIClient as any,
+        sourceLanguage: 'en',
+        backup: false,
+        verbose: false,
+      })
+
+      expect(result.translatedLanguages).toEqual(['de', 'fr', 'es'])
+      expect(result.translationsPerLanguage).toEqual({
+        de: 1,
+        fr: 1,
+        es: 1,
+      })
+
+      // Verify all files were created
+      expect(vol.existsSync('/test/locales/de.json')).toBe(true)
+      expect(vol.existsSync('/test/locales/fr.json')).toBe(true)
+      expect(vol.existsSync('/test/locales/es.json')).toBe(true)
+    })
+
+    it('should skip languages where all keys are translated', async () => {
+      vol.writeFileSync('/test/locales/en.json', JSON.stringify({
+        greeting: 'Hello',
+      }))
+
+      vol.writeFileSync('/test/locales/de.json', JSON.stringify({
+        greeting: 'Hallo',
+      }))
+
+      const mockAIClient = {
+        translateText: vi.fn(),
+      }
+
+      const { translateMissingKeys } = await import('@/extract-strings/autoTranslate')
+
+      const result = await translateMissingKeys({
+        sourceFile: '/test/locales/en.json',
+        targetLanguages: ['de'],
+        aiClient: mockAIClient as any,
+        sourceLanguage: 'en',
+        backup: false,
+        verbose: false,
+      })
+
+      // Should not translate anything
+      expect(result.translatedLanguages).toEqual([])
+      expect(mockAIClient.translateText).not.toHaveBeenCalled()
+    })
   })
 })

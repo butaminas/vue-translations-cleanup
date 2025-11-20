@@ -124,6 +124,9 @@ ai: {
 
   // Auto-translate to multiple languages (leave empty to skip)
   languages: ['de', 'fr', 'es'],
+
+  // Keys to exclude from auto-translation (supports glob patterns)
+  excludeFromTranslation: ['app.name', 'company.*', 'legal.terms.*'],
 }
 ```
 
