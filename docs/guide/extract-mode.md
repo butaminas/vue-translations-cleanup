@@ -27,10 +27,19 @@ npx vue-translations-cleanup --extract -t ./locales/en.json -s ./src --dry-run -
 ```
 
 ::: warning Important
-Extract mode requires a **single translation file**, not a directory.
-You must either:
-- Specify `-t ./locales/en.json` explicitly, OR
-- Use a `--config` file that defines `translationFile`
+Extract mode requires specifying which translation file to update.
+
+**Option 1 (Direct):** Specify a single file explicitly:
+```bash
+-t ./locales/en.json
+```
+
+**Option 2 (Config file):** Use a config with `translationFile` directory and `extract.targetLanguage`:
+```typescript
+// Config determines which file (e.g., 'en' → locales/en.json)
+translationFile: './locales'
+extract: { targetLanguage: 'en' }
+```
 :::
 
 ## Prerequisites
@@ -113,7 +122,7 @@ Converts raw strings to i18n calls:
 <button>Submit</button>
 
 <!-- After -->
-<button>\{\{ t('common.submit') \}\}</button>
+<button>{{ t('common.submit') }}</button>
 ```
 
 **Attributes:**

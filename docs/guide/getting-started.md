@@ -121,8 +121,8 @@ Convert hardcoded strings to i18n function calls:
 # With config file (recommended - uses targetLanguage setting)
 npx vue-translations-cleanup --extract
 
-# Or specify paths directly
-npx vue-translations-cleanup --extract -t ./locales -s ./src
+# Or specify translation file directly
+npx vue-translations-cleanup --extract -t ./locales/en.json -s ./src
 
 # Preview changes first
 npx vue-translations-cleanup --extract --dry-run --verbose
@@ -136,8 +136,10 @@ npx vue-translations-cleanup --extract --dry-run --verbose
 - Updates your translation JSON file with new keys
 
 ::: tip Translation Directory Support
-You can specify a directory (e.g., `./locales`) instead of a specific file.
+When using a config file, you can specify a directory (e.g., `./locales`) instead of a specific file.
 The tool uses `extract.targetLanguage` from your config to determine which file to update (e.g., `en` → `locales/en.json`).
+
+Without a config file, you must specify a specific translation file (e.g., `-t ./locales/en.json`).
 :::
 
 **Output:**

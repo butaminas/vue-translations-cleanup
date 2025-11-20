@@ -37,7 +37,7 @@ Run AI models locally for privacy and cost savings.
 #### Ollama (Recommended)
 
 **Setup:**
-1. Install Ollama: https://ollama.ai
+1. Install Ollama: [https://docs.ollama.com/quickstart](https://docs.ollama.com/quickstart)
 2. Pull a model:
    ```bash
    ollama pull codellama
@@ -403,7 +403,7 @@ export default {
 
 ### 1. Start with Local AI
 
-Test with free local models:
+Test with free local models ([install Ollama first](https://docs.ollama.com/quickstart)):
 ```bash
 ollama pull codellama
 ```
