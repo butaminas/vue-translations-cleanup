@@ -6,7 +6,7 @@ import { detectRawStrings } from './rawStringDetector'
 import { generateKeys } from './keyGenerator'
 import { replaceStringsInJsFile, replaceStringsInVueFile, updateTranslationFile } from './codeReplacer'
 import { autoTranslate } from './autoTranslate'
-import type { ExtractResult, RawStringLocation } from './types'
+import type { ExtractResult, RawStringLocation, I18nDetectionResult } from './types'
 
 export interface ExtractOptions {
   translationFile: string
@@ -50,58 +50,86 @@ export async function runExtraction(options: ExtractOptions): Promise<ExtractRes
     console.log(`File pattern: ${filePattern}`)
   }
 
-  // Step 1: Detect existing i18n patterns
+  // Step 1: Determine i18n patterns
   console.log('\n[1/5] Detecting i18n usage patterns...')
 
-  // First try to detect from project config (nuxt/vite)
-  const { detectConfig } = await import('../cli-detection')
-  const detectedConfig = await detectConfig(process.cwd())
+  let i18nResult: I18nDetectionResult
 
-  const i18nResult = await detectI18nPatterns(
-    srcPath,
-    filePattern,
-    extractConfig.i18nPatterns,
-    detectedConfig, // Pass config detection results
-  )
-
-  if (verbose) {
-    console.log(`  Found ${i18nResult.patterns.length} i18n patterns`)
-    if (i18nResult.recommendedPattern) {
-      console.log(`  Recommended pattern: ${i18nResult.recommendedPattern.pattern}`)
-      console.log(`  Function name: ${i18nResult.recommendedPattern.functionName}`)
+  // Priority 1: Use custom patterns from config if provided
+  if (extractConfig.i18nPatterns && extractConfig.i18nPatterns.length > 0) {
+    i18nResult = {
+      patterns: extractConfig.i18nPatterns.map(p => ({
+        pattern: p.importTemplate,
+        functionName: p.functionName,
+        example: p.importTemplate,
+        file: 'from config',
+        count: 1,
+        type: 'custom' as const,
+        importStatement: p.importStatement,
+      })),
+      recommendedPattern: {
+        pattern: extractConfig.i18nPatterns[0].importTemplate,
+        functionName: extractConfig.i18nPatterns[0].functionName,
+        example: extractConfig.i18nPatterns[0].importTemplate,
+        file: 'from config',
+        count: 1,
+        type: 'custom' as const,
+        importStatement: extractConfig.i18nPatterns[0].importStatement,
+      },
+      functionNames: new Set(extractConfig.i18nPatterns.map(p => p.functionName)),
+      filesScanned: 0,
+      filesWithI18n: 0,
+    }
+    if (verbose) {
+      console.log(`  Using custom patterns from config`)
     }
   }
-  else if (i18nResult.recommendedPattern) {
+  else {
+    // Priority 2: Auto-detect patterns (for when running without config)
+    // First try to detect from project config (nuxt/vite)
+    const { detectConfig } = await import('../cli-detection')
+    const detectedConfig = await detectConfig(process.cwd())
+
+    i18nResult = await detectI18nPatterns(
+      srcPath,
+      filePattern,
+      extractConfig.i18nPatterns || [],
+      detectedConfig,
+    )
+
+    // If no patterns detected, use default $t (standard for @nuxtjs/i18n and vue-i18n)
+    if (i18nResult.patterns.length === 0) {
+      if (verbose) {
+        console.log(`  No patterns detected, using default global $t`)
+      }
+      i18nResult = {
+        patterns: [{
+          pattern: '$t(...)',
+          functionName: '$t',
+          example: '$t(\'key\')',
+          file: 'default (global $t)',
+          count: 1,
+          type: 'global' as const,
+          importStatement: undefined,
+        }],
+        recommendedPattern: {
+          pattern: '$t(...)',
+          functionName: '$t',
+          example: '$t(\'key\')',
+          file: 'default (global $t)',
+          count: 1,
+          type: 'global' as const,
+          importStatement: undefined,
+        },
+        functionNames: new Set(['$t']),
+        filesScanned: 0,
+        filesWithI18n: 0,
+      }
+    }
+  }
+
+  if (!verbose && i18nResult.recommendedPattern) {
     console.log(`  ✓ Found i18n pattern: ${i18nResult.recommendedPattern.functionName}`)
-  }
-
-  // Validate that we found at least one i18n pattern
-  if (i18nResult.patterns.length === 0) {
-    console.error('\n❌ Error: No i18n usage patterns found.')
-    console.error('\nThe extraction tool tried to detect i18n configuration from:')
-    console.error(`  1. ${detectedConfig.configType || 'No'} config file ${detectedConfig.configType ? '(found)' : '(not found)'}`)
-    console.error(`  2. Source code scanning ${i18nResult.filesScanned} files`)
-    console.error('\nTroubleshooting:')
-    console.error('  1. Ensure you have @nuxtjs/i18n or vue-i18n installed and configured')
-    console.error('  2. If using a custom i18n setup, add at least one usage example:')
-    console.error('     • Vue 3 Composition API: const { t } = useI18n()')
-    console.error('     • Vue 3 Options API / Nuxt: {{ $t(\'key\') }}')
-    console.error('  3. Or define custom patterns in your config file:')
-    console.error('     extract: {')
-    console.error('       i18nPatterns: [{')
-    console.error('         functionName: \'t\',')
-    console.error('         importTemplate: \'const { t } = useCustomI18n()\',')
-    console.error('         importStatement: "import { useCustomI18n } from \'@/i18n\'",')
-    console.error('       }]')
-    console.error('     }')
-
-    return {
-      rawStrings: [],
-      generatedKeys: new Map(),
-      filesModified: [],
-      totalExtracted: 0,
-      duplicates: [],
-    }
   }
 
   // Step 2: Find source files

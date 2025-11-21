@@ -191,7 +191,7 @@ async function run() {
 
       if (fs.existsSync(srcDir)) {
         try {
-          const result = await detectI18nPatterns(srcDir, '**/*.vue')
+          const result = await detectI18nPatterns(srcDir, '**/*.vue', [], detected)
 
           if (result.recommendedPattern) {
             const pattern = result.recommendedPattern

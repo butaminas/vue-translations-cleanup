@@ -61,8 +61,8 @@ describe('extract-strings/orchestrator', () => {
   })
 
   describe('i18n pattern validation', () => {
-    it('should return error when no i18n patterns are detected', async () => {
-      // Setup: project with no i18n references
+    it('should use default $t when no i18n patterns are detected', async () => {
+      // Setup: project with no i18n references or config
       vol.mkdirSync('/test/src', { recursive: true })
       vol.mkdirSync('/test/locales', { recursive: true })
 
@@ -88,26 +88,17 @@ const message = 'Welcome'
         translationFile: '/test/locales/en.json',
         srcPath: '/test/src',
         config: {},
-        dryRun: false,
+        dryRun: true,
         verbose: false,
       })
 
-      // Should return empty result
-      expect(result.rawStrings).toEqual([])
-      expect(result.generatedKeys.size).toBe(0)
-      expect(result.filesModified).toEqual([])
-      expect(result.totalExtracted).toBe(0)
+      // Should use default $t and extract strings
+      expect(result.rawStrings.length).toBeGreaterThan(0)
+      expect(result.generatedKeys.size).toBeGreaterThan(0)
+      expect(result.totalExtracted).toBeGreaterThan(0)
 
-      // Should have printed error message
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        expect.stringContaining('No i18n usage patterns found'),
-      )
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        expect.stringContaining('const { t } = useI18n()'),
-      )
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        expect.stringContaining('$t('),
-      )
+      // Should have used default pattern (no error)
+      expect(consoleErrorSpy).not.toHaveBeenCalled()
     })
 
     it('should proceed when i18n patterns are detected', async () => {
