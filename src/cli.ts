@@ -214,25 +214,21 @@ async function run() {
             }
           }
           else {
-            // Case 3: No i18n usage found
-            console.error(c.error(`\n${symbols.error} No i18n usage detected in your project.`))
-            console.error(c.dim('\nThis tool requires existing i18n setup in your project.'))
-            console.error(c.dim('Please ensure you have:'))
-            console.error(c.dim('  - vue-i18n or @nuxtjs/i18n installed'))
-            console.error(c.dim('  - At least one translation function call ($t, t, etc.)'))
-            console.error(c.dim('\nAlternatively, create the config file manually.'))
-            process.exit(1)
+            // Case 3: No i18n usage found - still generate config with warning
+            console.log(c.warn(`  ${symbols.warn} No i18n usage patterns detected in code`))
+            console.log(c.dim('  Config file will be generated with default settings.'))
+            console.log(c.dim('  You may need to add custom i18n patterns to the config.'))
           }
         }
         catch (error) {
           console.log(c.warn(`  ${symbols.warn} Could not scan for patterns: ${(error as Error).message}`))
+          console.log(c.dim('  Config file will be generated with default settings.'))
         }
       }
       else {
-        // Source directory not found - Case 3
-        console.error(c.error(`\n${symbols.error} Source directory not found: ${srcDir}`))
-        console.error(c.dim('Please create the config file manually.'))
-        process.exit(1)
+        // Source directory not found - still generate config with warning
+        console.log(c.warn(`  ${symbols.warn} Source directory not found: ${srcDir}`))
+        console.log(c.dim('  Config file will be generated with detected/default paths.'))
       }
     }
 

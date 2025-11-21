@@ -303,20 +303,45 @@ Coordinates the complete extraction pipeline.
 #### 6. extract-strings/i18nPatternDetector.ts
 Auto-detects existing i18n usage patterns in the codebase.
 
+**⚠️ CRITICAL: Two-Phase Detection Strategy (Updated 2025-11-21)**
+
+This module implements a **config-first, code-second** detection system to fix the issue where projects with properly configured i18n but no code examples would fail.
+
+**Phase 1: Config-Based Detection (PRIORITY 1)**
+- Detects `nuxt.config.ts` or `vite.config.ts` with i18n setup
+- Checks for `@nuxtjs/i18n` or `@intlify/unplugin-vue-i18n`
+- Reads `globalInjection` setting (default: true in both frameworks)
+- **If config found with globalInjection enabled → assumes $t() is globally available**
+- **Returns immediately WITHOUT scanning source code**
+- This allows extraction to work even with ZERO existing i18n usage in code
+
+**Phase 2: Code Scanning (PRIORITY 2 - Fallback Only)**
+- Only runs if Phase 1 fails (no config detected)
+- Scans actual source files for i18n function calls
+- Detects: `useI18n()`, `$t()`, `this.$t()`, custom patterns
+- Extracts import statements automatically
+- Falls back to this if using custom i18n setup without standard config
+
 **Built-in Pattern Detection**:
 - Composition API: `const { t } = useI18n()`
 - Options API: `this.$t(...)`
 - Global: `$t(...)` in templates
 - Custom patterns via config
 
-**Functionality**:
-- Scans files for i18n usage
-- Counts pattern occurrences
-- Recommends most common pattern
-- Supports custom patterns from config
-- **NEW**: Detects import statements (e.g., `import { useI18n } from 'vue-i18n'`)
-- **NEW**: Config-first approach for custom patterns (explicit `importStatement` in config takes precedence)
-- **NEW**: Auto-detection fallback (scans code if no explicit import provided)
+**Function Signature**:
+```typescript
+async function detectI18nPatterns(
+  srcPath: string,
+  filePattern: string,
+  customPatterns: I18nCustomPattern[] = [],
+  detectedConfig?: DetectedConfig, // NEW: Config detection results
+): Promise<I18nDetectionResult>
+```
+
+**Integration Points**:
+- `orchestrator.ts` calls this with `detectedConfig` from `cli-detection.ts`
+- `cli.ts` --init mode calls this to detect patterns for config generation
+- Returns pattern info that will be used for code replacement
 
 #### 7. extract-strings/rawStringDetector.ts
 Finds raw translatable strings using AST parsing and heuristics.
@@ -537,16 +562,21 @@ CLI entry point with commander.js.
 
 **Modes**:
 1. **Init mode** (`--init`): Generate config file with auto-detected settings
-   - Detects translation file and source paths
-   - Scans codebase for existing i18n patterns
-   - Generates `vue-translations-cleanup.config.ts` with recommended settings
+   - Detects translation file and source paths from nuxt/vite config or common locations
+   - Detects i18n setup from config files (priority 1) or scans codebase (priority 2)
+   - **ALWAYS generates config file**, even if no i18n patterns found
+   - Shows warnings for missing patterns but continues with defaults
+   - Generates `vue-translations-cleanup.config.ts` with detected/default settings
    - Useful for initial project setup
+   - **Fixed 2025-11-21**: No longer exits with error when no patterns detected
 2. **Cleanup mode** (default): Remove unused translations
    - Single-file mode: Process one JSON file
    - Directory mode: Process all JSON files recursively
 3. **Extract mode** (`--extract`): Convert raw strings to i18n
    - Requires a single translation file (not directory)
+   - Uses config-first detection (checks nuxt/vite config before scanning code)
    - Runs full extraction pipeline
+   - **Fixed 2025-11-21**: Better error messages showing detection attempts
 
 #### 14. cli-detection.ts
 Auto-detection logic for translation and source paths.

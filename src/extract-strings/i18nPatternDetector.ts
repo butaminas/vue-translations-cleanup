@@ -1,6 +1,7 @@
 import fs from 'node:fs'
 import { glob } from 'glob'
 import type { I18nCustomPattern } from '../config/types'
+import type { DetectedConfig } from '../cli-detection'
 import type { I18nDetectionResult, I18nUsagePattern } from './types'
 
 /**
@@ -204,7 +205,39 @@ export async function detectI18nPatterns(
   srcPath: string,
   filePattern: string,
   customPatterns: I18nCustomPattern[] = [],
+  detectedConfig?: DetectedConfig,
 ): Promise<I18nDetectionResult> {
+  // PRIORITY 1: Check if we detected a Nuxt/Vite config with globalInjection
+  // If yes, we can assume $t is available globally without scanning code
+  if (detectedConfig?.configType && detectedConfig.globalInjection !== false) {
+    // Config found and globalInjection is enabled (default)
+    // We can safely assume $t is available
+    return {
+      patterns: [{
+        pattern: '$t(...)',
+        functionName: '$t',
+        example: '$t(\'key\')',
+        file: 'detected from config',
+        count: 1,
+        type: 'global',
+        importStatement: undefined, // No import needed for global $t
+      }],
+      recommendedPattern: {
+        pattern: '$t(...)',
+        functionName: '$t',
+        example: '$t(\'key\')',
+        file: 'detected from config',
+        count: 1,
+        type: 'global',
+        importStatement: undefined,
+      },
+      functionNames: new Set(['$t']),
+      filesScanned: 0,
+      filesWithI18n: 0,
+    }
+  }
+
+  // PRIORITY 2: Scan source code for i18n patterns
   // Find all source files
   const files = await glob(filePattern, {
     cwd: srcPath,

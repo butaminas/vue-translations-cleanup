@@ -53,10 +53,15 @@ export async function runExtraction(options: ExtractOptions): Promise<ExtractRes
   // Step 1: Detect existing i18n patterns
   console.log('\n[1/5] Detecting i18n usage patterns...')
 
+  // First try to detect from project config (nuxt/vite)
+  const { detectConfig } = await import('../cli-detection')
+  const detectedConfig = await detectConfig(process.cwd())
+
   const i18nResult = await detectI18nPatterns(
     srcPath,
     filePattern,
     extractConfig.i18nPatterns,
+    detectedConfig, // Pass config detection results
   )
 
   if (verbose) {
@@ -72,29 +77,23 @@ export async function runExtraction(options: ExtractOptions): Promise<ExtractRes
 
   // Validate that we found at least one i18n pattern
   if (i18nResult.patterns.length === 0) {
-    console.error('\n❌ Error: No i18n usage patterns found in your codebase.')
-    console.error('\nThe extraction tool needs to detect at least one existing i18n reference')
-    console.error('to understand how your project uses i18n.')
-    console.error('\nPlease add at least one i18n reference to your code:')
-    console.error('\nFor Vue 3 with Composition API:')
-    console.error('  <script setup>')
-    console.error('  const { t } = useI18n()')
-    console.error('  const greeting = t(\'hello\')')
-    console.error('  </script>')
-    console.error('\nFor Vue 3 Options API / Nuxt:')
-    console.error('  <template>')
-    console.error('    <div>{{ $t(\'hello\') }}</div>')
-    console.error('  </template>')
-    console.error('\nFor custom patterns, you can define them in your config file:')
-    console.error('  extract: {')
-    console.error('    i18nPatterns: [')
-    console.error('      {')
-    console.error('        functionName: \'t\',')
-    console.error('        importStatement: \'const { t } = useCustomI18n()\',')
-    console.error('      }')
-    console.error('    ]')
-    console.error('  }')
-    console.error('\nAfter adding a reference, run the extraction tool again.')
+    console.error('\n❌ Error: No i18n usage patterns found.')
+    console.error('\nThe extraction tool tried to detect i18n configuration from:')
+    console.error(`  1. ${detectedConfig.configType || 'No'} config file ${detectedConfig.configType ? '(found)' : '(not found)'}`)
+    console.error(`  2. Source code scanning ${i18nResult.filesScanned} files`)
+    console.error('\nTroubleshooting:')
+    console.error('  1. Ensure you have @nuxtjs/i18n or vue-i18n installed and configured')
+    console.error('  2. If using a custom i18n setup, add at least one usage example:')
+    console.error('     • Vue 3 Composition API: const { t } = useI18n()')
+    console.error('     • Vue 3 Options API / Nuxt: {{ $t(\'key\') }}')
+    console.error('  3. Or define custom patterns in your config file:')
+    console.error('     extract: {')
+    console.error('       i18nPatterns: [{')
+    console.error('         functionName: \'t\',')
+    console.error('         importTemplate: \'const { t } = useCustomI18n()\',')
+    console.error('         importStatement: "import { useCustomI18n } from \'@/i18n\'",')
+    console.error('       }]')
+    console.error('     }')
 
     return {
       rawStrings: [],
