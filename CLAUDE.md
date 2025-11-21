@@ -560,23 +560,53 @@ CLI entry point with commander.js.
 - `-v, --verbose`: Show detailed output
 - `-p, --pattern <glob>`: Custom file pattern (default: `**/*.{vue,js,ts}`)
 
-**Modes**:
-1. **Init mode** (`--init`): Generate config file with auto-detected settings
-   - Detects translation file and source paths from nuxt/vite config or common locations
-   - Detects i18n setup from config files (priority 1) or scans codebase (priority 2)
-   - **ALWAYS generates config file**, even if no i18n patterns found
-   - Shows warnings for missing patterns but continues with defaults
-   - Generates `vue-translations-cleanup.config.ts` with detected/default settings
-   - Useful for initial project setup
-   - **Fixed 2025-11-21**: No longer exits with error when no patterns detected
-2. **Cleanup mode** (default): Remove unused translations
-   - Single-file mode: Process one JSON file
-   - Directory mode: Process all JSON files recursively
-3. **Extract mode** (`--extract`): Convert raw strings to i18n
-   - Requires a single translation file (not directory)
-   - Uses config-first detection (checks nuxt/vite config before scanning code)
-   - Runs full extraction pipeline
-   - **Fixed 2025-11-21**: Better error messages showing detection attempts
+**⚠️ CRITICAL: Architecture - Pattern Detection Strategy (Updated 2025-11-21)**
+
+The tool uses a clear separation of responsibilities between --init and --extract modes:
+
+**Key Principle:** `--init` detects and SAVES patterns to config. `--extract` USES saved patterns from config, or detects on-the-fly if no config exists.
+
+**--init mode responsibility:**
+- **Always generates config file**, never exits with error
+- Detects and saves the following to config:
+  - `translationFile` directory (./locales, ./i18n/locales) - typically easy to detect
+  - `srcPath` (./src, ./app, ./client) - typically easy to detect
+  - `targetLanguage` from nuxt.config/vite.config defaultLocale
+  - `i18nPatterns` using three-phase detection:
+    - **Phase 1**: Check nuxt.config/vite.config for `globalInjection` setting
+      - If `globalInjection !== false` (default is true) → $t is globally available, no custom pattern needed
+      - Saves: Empty i18nPatterns array (relies on global $t)
+    - **Phase 2**: If `globalInjection === false` OR no config detected → scan codebase for actual usage
+      - Detects: `useI18n()`, custom composition API patterns, etc.
+      - Saves: Detected patterns with import statements
+    - **Phase 3**: If nothing detected → generate config with defaults, show warning
+      - User may need to manually add custom patterns to config
+- Generates `vue-translations-cleanup.config.ts` with all detected/default settings
+
+**--extract mode responsibility:**
+- **Priority 1**: If config file exists and has `i18nPatterns` → USE those patterns (from config)
+  - No detection needed, just uses configured patterns
+  - Fast and reliable
+- **Priority 2**: If no config file OR config has no patterns → detect on-the-fly
+  - Runs same detection logic as --init (config check → code scan)
+  - Supports global install scenario (tool used without config file)
+- **Priority 3**: If detection finds nothing → use default $t fallback
+  - Assumes standard vue-i18n/nuxt-i18n setup with global $t
+  - **NEVER errors out**, always has a working fallback
+- Requires a single translation file (not directory)
+- Runs full extraction pipeline with detected or configured patterns
+
+**Why this architecture:**
+- Config-first approach is reliable and fast (no scanning needed)
+- On-the-fly detection supports flexible usage (no config required for simple cases)
+- Always has fallback (never blocks user)
+- Clear separation: --init for setup, --extract for actual work
+
+**Cleanup mode** (default):
+- Remove unused translations
+- Single-file mode: Process one JSON file
+- Directory mode: Process all JSON files recursively
+- Independent of pattern detection (uses regex patterns only)
 
 #### 14. cli-detection.ts
 Auto-detection logic for translation and source paths.
